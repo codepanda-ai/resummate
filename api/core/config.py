@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # Gemini Configuration
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
-    MAX_OUTPUT_TOKENS: int = 512
+    MAX_OUTPUT_TOKENS: int = 2048
     DEFAULT_TEMPERATURE: float = 0.5
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10 MB
 

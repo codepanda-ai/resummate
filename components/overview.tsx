@@ -20,14 +20,14 @@ export const Overview = () => {
         </p>
         <div className="text-foreground">
           <p>
-            <b>Resummate</b> is an AI career strategist that transforms your resume into a &quot;Top 1%&quot; application.
+            <b>Resummate</b> is your AI-powered interview coach that helps you ace your next interview.
           </p>
           <p className="mt-4">
-            Resummate provides interactive coaching and detailed feedback based on modern hiring standards and ATS optimization.
-            Get personalized suggestions for improving your resume, from action verbs to keyword alignment for your target role.
+            Practice realistic behavioral, situational, and technical interview questions tailored to your resume and target role.
+            Get real-time feedback and a detailed performance report when you&apos;re done.
           </p>
           <p className="mt-4">
-            Start by uploading your resume to receive expert feedback.
+            Upload your resume and job description, then tap <b>Start interview session</b> to begin.
           </p>
         </div>
       </div>

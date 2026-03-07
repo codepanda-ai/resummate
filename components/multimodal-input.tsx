@@ -25,6 +25,12 @@ import { AttachmentsButton } from "./ui/attachments-button";
 import { MicrophoneButton } from "./ui/microphone-button";
 import { SpeechRecordingOverlay } from "./speech-recording-overlay";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 import type { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 
@@ -34,24 +40,10 @@ type ChatRequestOptions = {
   data?: unknown;
 };
 
-const suggestedActions = [
-  {
-    title: "0",
-    label: "What’s the biggest red flag?",
-  },
-  {
-    title: "1",
-    label: "How would this resume differ for startups?",
-  },
-  {
-    title: "2",
-    label: "Where can I show ownership or decision-making?",
-  },
-  {
-    title: "3",
-    label: "How ATS-friendly is this resume?",
-  },
-];
+const START_INTERVIEW_MESSAGE =
+  "Start an interview session with the user based on the uploaded resume and job description";
+const END_INTERVIEW_MESSAGE =
+  "Generate a markdown evaluation report of the user's interview performance with a score out of 100, and an offer/no offer decision. List strengths and areas for improvement";
 
 export function MultimodalInput({
   chatId,
@@ -92,6 +84,10 @@ export function MultimodalInput({
   const [isJobDescriptionLoading, setIsJobDescriptionLoading] = useState<boolean>(false);
   const [attachedResume, setAttachedResume] = useState<{ name: string; type: string } | null>(null);
   const [attachedJobDescription, setAttachedJobDescription] = useState<{ name: string; type: string } | null>(null);
+  const [interviewEnded, setInterviewEnded] = useState(false);
+
+  const interviewStarted = messages.length > 0;
+  const canStartInterview = !!attachedResume && !!attachedJobDescription;
 
   const { width } = useWindowSize();
 
@@ -214,6 +210,35 @@ export function MultimodalInput({
       textareaRef.current?.focus();
     }
   }, [handleSubmit, setLocalStorageInput, width]);
+
+  const handleStartInterview = useCallback(async () => {
+    const headers = await getAuthHeaders(user, { testMode: isTestMode });
+    sendMessage(
+      {
+        role: "user",
+        parts: [{ type: "text", text: START_INTERVIEW_MESSAGE }],
+      },
+      {
+        headers: headers as Record<string, string>,
+        body: { id: chatId },
+      }
+    );
+  }, [user, isTestMode, sendMessage, chatId]);
+
+  const handleEndInterview = useCallback(async () => {
+    const headers = await getAuthHeaders(user, { testMode: isTestMode });
+    sendMessage(
+      {
+        role: "user",
+        parts: [{ type: "text", text: END_INTERVIEW_MESSAGE }],
+      },
+      {
+        headers: headers as Record<string, string>,
+        body: { id: chatId },
+      }
+    );
+    setInterviewEnded(true);
+  }, [user, isTestMode, sendMessage, chatId]);
 
   const removeResume = useCallback(async (chatId: string) => {
     setAttachedResume(null);
@@ -358,51 +383,52 @@ export function MultimodalInput({
 
   return (
     <div className="relative w-full flex flex-col gap-4">
-      {messages.length === 0 && (
-        <div className="grid sm:grid-cols-2 gap-2 w-full">
-          {suggestedActions.map((suggestedAction, index) => (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ delay: 0.05 * index }}
-              key={`suggested-action-${suggestedAction.title}-${index}`}
-              className={index > 1 ? "hidden sm:block" : "block"}
+      {!interviewEnded && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ delay: 0.05 }}
+          className="w-full"
+        >
+          {interviewStarted ? (
+            <Button
+              variant="destructive"
+              onClick={handleEndInterview}
+              disabled={isLoading}
+              className="w-full rounded-xl px-4 py-3.5 text-sm h-auto"
             >
-              <Button
-                variant="ghost"
-                onClick={async () => {
-                  const headers = await getAuthHeaders(user, { testMode: isTestMode });
-                  sendMessage(
-                    {
-                      role: "user",
-                      parts: [
-                        {
-                          type: "text",
-                          text: suggestedAction.label,
-                        },
-                      ],
-                    },
-                    {
-                      headers: headers as Record<string, string>,
-                      body: { id: chatId },
-                    },
-                  );
-                }}
-                className="text-left border rounded-xl px-4 py-3.5 text-sm w-full h-auto justify-start items-start whitespace-normal break-words overflow-wrap-anywhere"
-              >
-                <span className="text-muted-foreground">
-                  {suggestedAction.label}
-                </span>
-              </Button>
-            </motion.div>
-          ))}
-        </div>
+              End interview session
+            </Button>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="w-full">
+                    <Button
+                      variant="default"
+                      onClick={handleStartInterview}
+                      disabled={!canStartInterview || isLoading}
+                      className="w-full rounded-xl px-4 py-3.5 text-sm h-auto"
+                    >
+                      Start interview session
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!canStartInterview && (
+                  <TooltipContent side="top">
+                    <p>Upload both a resume and job description to start</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </motion.div>
       )}
 
       {/* File Attachments */}
       {(attachedResume || isResumeLoading || attachedJobDescription || isJobDescriptionLoading) && (
-        <div className="flex flex-wrap gap-2 justify-start">
+        <div className="grid grid-cols-2 gap-2 w-full">
           {(attachedResume || isResumeLoading) && (
             <FileAttachmentComponent
               fileName={attachedResume?.name || "Resume"}

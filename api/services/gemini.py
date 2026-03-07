@@ -295,16 +295,16 @@ async def stream_resume_required_message(
 
 
 MOCK_RESPONSES = [
-    "Your resume looks great! The formatting is clean and professional.",
-    "I'd suggest adding more quantifiable achievements to your experience section.",
-    "The skills section could benefit from including more industry-specific keywords.",
-    "Your summary effectively highlights your key strengths and career objectives.",
-    "Consider reordering your bullet points to lead with the most impactful achievements.",
-    "The action verbs you've used are strong. Nice work on that front!",
-    "I notice some inconsistencies in date formatting. Let's standardize those.",
-    "Your education section is well-structured. Good job including relevant coursework.",
-    "Adding a projects section could strengthen your application for this role.",
-    "The overall ATS compatibility score looks promising. A few tweaks could push it higher.",
+    "Great, let's get started! Tell me about a time you led a technical project from start to finish. What was the outcome?",
+    "Can you walk me through a challenging bug or outage you resolved? How did you diagnose the root cause?",
+    "That's a solid answer. Can you go deeper on what your specific contribution was versus the team's?",
+    "Interesting. What would you do differently if you had to approach that problem again today?",
+    "Tell me about a time you disagreed with a teammate on a technical decision. How did you resolve it?",
+    "How did you measure success for that project? Were there any metrics you tracked?",
+    "Good detail there. Now, describe a situation where you had to learn a new technology quickly to deliver on a deadline.",
+    "Can you give me an example of a time you mentored a junior engineer? What was the impact?",
+    "Let's shift gears. How do you prioritize tasks when you have multiple competing deadlines?",
+    "Thanks for sharing that. Let's move on — tell me about your experience with system design at scale.",
 ]
 
 
