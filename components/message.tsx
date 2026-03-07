@@ -7,6 +7,7 @@ import { memo } from "react";
 
 import { SparklesIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
+import { TtsButton } from "./tts-button";
 import { cn } from "@/lib/utils";
 
 const PreviewMessageComponent = ({
@@ -16,6 +17,14 @@ const PreviewMessageComponent = ({
   message: UIMessage;
   isLoading: boolean;
 }) => {
+  const ttsText =
+    message.role === "assistant"
+      ? (message.parts
+          ?.filter((p: unknown) => (p as { type?: string }).type === "text")
+          .map((p: unknown) => (p as { text?: string }).text ?? "")
+          .join(" ") ?? "")
+      : "";
+
   return (
     <motion.div
       className="w-full mx-auto max-w-3xl px-4 group/message"
@@ -29,8 +38,11 @@ const PreviewMessageComponent = ({
         )}
       >
         {message.role === "assistant" && (
-          <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
-            <SparklesIcon size={14} />
+          <div className="flex flex-col items-center gap-1 shrink-0">
+            <div className="size-8 flex items-center rounded-full justify-center ring-1 ring-border">
+              <SparklesIcon size={14} />
+            </div>
+            {ttsText && <TtsButton text={ttsText} />}
           </div>
         )}
 

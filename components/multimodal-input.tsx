@@ -22,6 +22,9 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { FileAttachment as FileAttachmentComponent } from "./file-attachment";
 import { AttachmentsButton } from "./ui/attachments-button";
+import { MicrophoneButton } from "./ui/microphone-button";
+import { SpeechRecordingOverlay } from "./speech-recording-overlay";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 import type { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 
@@ -125,6 +128,38 @@ export function MultimodalInput({
   useEffect(() => {
     setLocalStorageInput(input);
   }, [input, setLocalStorageInput]);
+
+  const handleTranscriptReady = useCallback(
+    async (text: string) => {
+      const headers = await getAuthHeaders(user, { testMode: isTestMode });
+      sendMessage(
+        {
+          role: "user",
+          parts: [{ type: "text", text }],
+        },
+        {
+          headers: headers as Record<string, string>,
+          body: { id: chatId },
+        }
+      );
+    },
+    [user, isTestMode, sendMessage, chatId]
+  );
+
+  const {
+    state: speechState,
+    transcript: speechTranscript,
+    isSupported: isSpeechSupported,
+    startRecording,
+    stopRecording,
+    error: speechError,
+  } = useSpeechRecognition(handleTranscriptReady);
+
+  useEffect(() => {
+    if (speechError) {
+      toast.error(speechError);
+    }
+  }, [speechError]);
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
@@ -443,6 +478,14 @@ export function MultimodalInput({
         status={status}
       />
 
+      {isSpeechSupported && !isLoading && (
+        <MicrophoneButton
+          isRecording={speechState === "recording"}
+          onClick={startRecording}
+          status={status}
+        />
+      )}
+
       {isLoading ? (
         <Button
           className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5 border border-border"
@@ -466,6 +509,12 @@ export function MultimodalInput({
           <ArrowUpIcon size={14} />
         </Button>
       )}
+
+      <SpeechRecordingOverlay
+        state={speechState}
+        transcript={speechTranscript}
+        onStopRecording={stopRecording}
+      />
     </div>
   );
 }
