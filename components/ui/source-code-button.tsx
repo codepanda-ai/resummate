@@ -5,7 +5,7 @@ import { memo } from "react";
 
 function PureSourceCodeButton() {
   return (
-    <div className="fixed bottom-4 left-4 z-50">  
+    <div>
       <Link href="https://github.com/danthaman44/resummate/">
         <Button variant="outline">
           <GitIcon /> View Source Code

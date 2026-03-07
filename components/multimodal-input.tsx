@@ -15,6 +15,7 @@ import { useUser } from "@stackframe/stack";
 
 import { cn, sanitizeUIMessages } from "@/lib/utils";
 import { getAuthHeadersForFormData, getAuthHeaders } from "@/lib/auth-headers";
+import { useTestMode } from "@/hooks/use-test-mode";
 
 import { ArrowUpIcon, StopIcon } from "./icons";
 import { Button } from "./ui/button";
@@ -80,6 +81,7 @@ export function MultimodalInput({
   className?: string;
 }) {
   const user = useUser({ or: "redirect" });
+  const { isTestMode } = useTestMode();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const jobDescriptionInputRef = useRef<HTMLInputElement>(null);
@@ -335,15 +337,22 @@ export function MultimodalInput({
               <Button
                 variant="ghost"
                 onClick={async () => {
-                  sendMessage({
-                    role: "user",
-                    parts: [
-                      {
-                        type: "text",
-                        text: suggestedAction.label,
-                      },
-                    ],
-                  });
+                  const headers = await getAuthHeaders(user, { testMode: isTestMode });
+                  sendMessage(
+                    {
+                      role: "user",
+                      parts: [
+                        {
+                          type: "text",
+                          text: suggestedAction.label,
+                        },
+                      ],
+                    },
+                    {
+                      headers: headers as Record<string, string>,
+                      body: { id: chatId },
+                    },
+                  );
                 }}
                 className="text-left border rounded-xl px-4 py-3.5 text-sm w-full h-auto justify-start items-start whitespace-normal break-words overflow-wrap-anywhere"
               >

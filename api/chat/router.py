@@ -4,7 +4,7 @@ Chat router for handling chat conversations and message history.
 
 import uuid as uuid_lib
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
 from api.auth.stack_auth import verify_stack_token
@@ -29,6 +29,7 @@ from api.services.gemini import (
     generate_response,
     stream_response,
     stream_resume_required_message,
+    stream_mock_response,
 )
 
 
@@ -95,6 +96,7 @@ async def handle_chat(
     gemini: GeminiClient,
     request: ChatRequest,
     protocol: str = Query("data"),
+    x_test_mode: str | None = Header(None),
 ) -> StreamingResponse:
     """
     Handle chat conversation with streaming response.
@@ -104,6 +106,7 @@ async def handle_chat(
         gemini: Gemini client dependency
         request: Chat request with messages
         protocol: Streaming protocol type
+        x_test_mode: Test mode header flag
 
     Returns:
         StreamingResponse: Streaming chat response
@@ -134,6 +137,14 @@ async def handle_chat(
         supabase=supabase,
         message=Message(thread_id=thread_id, sender="user", content=prompt),
     )
+
+    if x_test_mode == "true":
+        log_info("Test mode enabled, returning mock response")
+        response = StreamingResponse(
+            stream_mock_response(supabase, thread_id),
+            media_type="text/event-stream",
+        )
+        return patch_response_with_headers(response, protocol)
 
     resume = await get_resume(supabase, thread_id)
     if not resume:

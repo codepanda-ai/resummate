@@ -11,12 +11,21 @@ import { CurrentUser } from "@stackframe/stack";
  * @param user - Stack user object with getAccessToken method
  * @returns Headers object with Authorization and Content-Type
  */
-export async function getAuthHeaders(user: CurrentUser): Promise<HeadersInit> {
+export async function getAuthHeaders(
+  user: CurrentUser,
+  options?: { testMode?: boolean }
+): Promise<HeadersInit> {
   const accessToken = await user.getAccessToken();
-  return {
+  const headers: Record<string, string> = {
     "Authorization": `Bearer ${accessToken}`,
     "Content-Type": "application/json",
   };
+
+  if (options?.testMode) {
+    headers["x-test-mode"] = "true";
+  }
+
+  return headers;
 }
 
 /**

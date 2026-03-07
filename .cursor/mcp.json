@@ -2,6 +2,10 @@
   "mcpServers": {
     "stack-auth": {
       "url": "https://mcp.stack-auth.com/"
+    },
+    "figma": {
+      "url": "https://mcp.figma.com/mcp",
+      "type": "http"
     }
   }
 }

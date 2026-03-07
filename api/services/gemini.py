@@ -4,6 +4,7 @@ Gemini AI service for handling AI operations.
 
 import json
 import os
+import random
 import tempfile
 import time
 import traceback
@@ -277,6 +278,56 @@ async def stream_resume_required_message(
     message_id = f"msg-{uuid.uuid4().hex}"
     text_stream_id = "text-1"
     message_text = "Please upload a resume before chatting with Resummate."
+
+    yield format_sse({"type": "start", "messageId": message_id})
+    yield format_sse({"type": "text-start", "id": text_stream_id})
+    yield format_sse(
+        {"type": "text-delta", "id": text_stream_id, "delta": message_text}
+    )
+    yield format_sse({"type": "text-end", "id": text_stream_id})
+
+    await create_message(
+        supabase, Message(thread_id=thread_id, sender="model", content=message_text)
+    )
+
+    yield format_sse({"type": "finish"})
+    yield "data: [DONE]\n\n"
+
+
+MOCK_RESPONSES = [
+    "Your resume looks great! The formatting is clean and professional.",
+    "I'd suggest adding more quantifiable achievements to your experience section.",
+    "The skills section could benefit from including more industry-specific keywords.",
+    "Your summary effectively highlights your key strengths and career objectives.",
+    "Consider reordering your bullet points to lead with the most impactful achievements.",
+    "The action verbs you've used are strong. Nice work on that front!",
+    "I notice some inconsistencies in date formatting. Let's standardize those.",
+    "Your education section is well-structured. Good job including relevant coursework.",
+    "Adding a projects section could strengthen your application for this role.",
+    "The overall ATS compatibility score looks promising. A few tweaks could push it higher.",
+]
+
+
+async def stream_mock_response(
+    supabase: Client, thread_id: str
+) -> AsyncGenerator[str, None]:
+    """
+    Stream a random mock response for test mode.
+
+    Args:
+        supabase: Supabase client instance
+        thread_id: Thread identifier
+
+    Yields:
+        str: SSE formatted response chunks
+    """
+
+    def format_sse(payload: Dict[str, Any]) -> str:
+        return f"data: {json.dumps(payload, separators=(',', ':'))}\n\n"
+
+    message_id = f"msg-{uuid.uuid4().hex}"
+    text_stream_id = "text-1"
+    message_text = random.choice(MOCK_RESPONSES)
 
     yield format_sse({"type": "start", "messageId": message_id})
     yield format_sse({"type": "text-start", "id": text_stream_id})

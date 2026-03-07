@@ -11,6 +11,7 @@ import { useParams } from "next/navigation";
 import { useUser } from "@stackframe/stack";
 import { Spinner } from "@/components/ui/spinner";
 import { getAuthHeaders } from "@/lib/auth-headers";
+import { useTestMode } from "@/hooks/use-test-mode";
 
 export function Chat() {
   const user = useUser({ or: "redirect" });
@@ -18,6 +19,7 @@ export function Chat() {
   const uuid = params?.uuid as string;
   const chatId = uuid || "001";
 
+  const { isTestMode } = useTestMode();
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
@@ -88,7 +90,7 @@ export function Chat() {
   const handleSubmit = async (event?: { preventDefault?: () => void }) => {
     event?.preventDefault?.();
     if (input.trim()) {
-      const headers = await getAuthHeaders(user);
+      const headers = await getAuthHeaders(user, { testMode: isTestMode });
       sendMessage(
         { text: input },
         {

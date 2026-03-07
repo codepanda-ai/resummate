@@ -35,7 +35,9 @@ pnpm fastapi-dev     # FastAPI on :8000
 |---------|-------------|
 | `pnpm dev` | Start both Next.js and FastAPI concurrently |
 | `pnpm build` | Build Next.js for production |
-| `pnpm lint` | Run ESLint |
+| `pnpm eslint . --fix` | Lint and auto-fix frontend (TypeScript/React) |
+| `source myenv/bin/activate && ruff check . --fix && ruff format .` | Lint and format backend (Python, requires venv) |
+| `python3 -m venv myenv` | Create Python venv (if it doesn't exist) |
 | `ANALYZE=true pnpm build` | Build with bundle analyzer |
 
 ## Project Structure
@@ -152,7 +154,7 @@ Configured in `.env.local`. See `.env.example` for the full template.
 - **Formatting:** Biome (`@biomejs/biome`).
 - **TypeScript:** Strict mode enabled.
 - **Python:** All functions must have docstrings (Args, Returns, Raises) and complete type hints.
-- Run `pnpm lint` before committing.
+- Run `pnpm eslint . --fix` (frontend) and `source myenv/bin/activate && ruff check . --fix && ruff format .` (backend) before committing.
 
 ## Testing
 

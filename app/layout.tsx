@@ -6,7 +6,9 @@ import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { DarkModeToggle } from "@/components/dark-mode-toggle"
+import { TestModeToggle } from "@/components/test-mode-toggle"
 import { ThemeProvider } from "@/components/theme-provider";
+import { TestModeProvider } from "@/hooks/use-test-mode";
 import { ViewSourceCodeButton } from "@/components/ui/source-code-button";
 import type { Metadata } from "next";
 
@@ -28,17 +30,18 @@ export default function RootLayout({
         <StackProvider app={stackClientApp}>
           <StackTheme>
             <ThemeProvider>
-              <Toaster position="top-center" richColors />
-              <Navbar />
-              <main className="pt-14">
-                {children}
-              </main>
-              <div className="hidden sm:block">
-                <ViewSourceCodeButton />
-              </div>
-              <div className="hidden sm:block">
-                <DarkModeToggle />
-              </div>
+              <TestModeProvider>
+                <Toaster position="top-center" richColors />
+                <Navbar />
+                <main className="pt-14">
+                  {children}
+                </main>
+                <div className="hidden sm:flex fixed bottom-4 left-4 z-50 flex-col items-center gap-3">
+                  <TestModeToggle />
+                  <DarkModeToggle />
+                  <ViewSourceCodeButton />
+                </div>
+              </TestModeProvider>
             </ThemeProvider>
           </StackTheme>
         </StackProvider>
