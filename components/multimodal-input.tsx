@@ -18,7 +18,7 @@ import { cn, sanitizeUIMessages } from "@/lib/utils";
 import { getAuthHeadersForFormData, getAuthHeaders } from "@/lib/auth-headers";
 import { useTestMode } from "@/hooks/use-test-mode";
 
-import { Play, StopCircle, Sparkles, Loader2 } from "lucide-react";
+import { Play, StopCircle, Sparkles, Loader2, ArrowRight } from "lucide-react";
 
 import { ArrowUpIcon, StopIcon } from "./icons";
 import { Button } from "./ui/button";
@@ -34,6 +34,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 
 import type { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 
@@ -439,20 +450,43 @@ export function MultimodalInput({
               <>
                 <Sparkles size={16} />
                 View feedback report
+                <ArrowRight size={16} className="ml-auto" />
               </>
             )}
           </Button>
         ) : interviewStarted ? (
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleEndInterview}
-            disabled={isLoading}
-            className="w-full rounded-xl px-4 py-3.5 text-sm h-auto flex items-center gap-2"
-          >
-            <StopCircle size={16} />
-            End interview session
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={isLoading}
+                className="w-full rounded-xl px-4 py-3.5 text-sm h-auto flex items-center gap-2"
+              >
+                <StopCircle size={16} />
+                End interview session
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>End interview session?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will stop the interview and you won&apos;t be able to
+                  continue answering questions. You can still view your feedback
+                  report afterwards.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleEndInterview}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  End interview
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         ) : (
           <TooltipProvider>
             <Tooltip>
