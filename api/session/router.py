@@ -7,11 +7,10 @@ from pydantic import BaseModel
 from typing import Optional
 
 from api.auth.stack_auth import verify_stack_token
-from api.core.dependencies import SupabaseClient, GeminiClient
+from api.core.dependencies import ReportAgentDep, SupabaseClient
 from api.db.service import (
     get_or_create_session,
     update_session_status,
-    get_messages,
     save_session_report,
     get_session_report,
 )
@@ -33,40 +32,6 @@ class ReportResponse(BaseModel):
     """Response model for session report."""
 
     report: str
-
-
-MOCK_FEEDBACK_REPORT = """# Interview Performance Report
-
-## Overall Score: 82/100
-
-## Decision: OFFER
-
-## Summary
-The candidate demonstrated strong communication skills and relevant technical experience throughout the session. Answers were generally well-structured using the STAR method, with clear outcomes described. Some areas could benefit from more quantitative impact data.
-
-## Strengths
-- **Clear communication**: Answers were organized and easy to follow
-- **Relevant experience**: Effectively referenced past projects aligned to the role
-- **Problem-solving approach**: Articulated a methodical process for debugging and technical challenges
-
-## Areas for Improvement
-- **Quantify impact**: Add specific metrics (e.g., "reduced latency by 40%") to strengthen answers
-- **Leadership depth**: Provide more examples of driving team decisions or mentoring others
-- **Edge case thinking**: When discussing system design, proactively address failure modes
-
-## Question-by-Question Breakdown
-| Question | Rating | Notes |
-|----------|--------|-------|
-| Technical challenge question | Strong | Good detail on root cause analysis |
-| Leadership/collaboration question | Adequate | Could include more specific outcomes |
-| System design question | Strong | Solid fundamentals, missing scalability discussion |
-| Behavioral question | Adequate | Answer was relevant but lacked measurable results |
-
-## Recommendations
-- Practice answering with the STAR framework and always end with a quantifiable result
-- Prepare 2-3 stories that can be adapted across behavioral, leadership, and technical questions
-- Review common system design patterns and practice explaining trade-offs out loud
-"""
 
 
 @router.get(
@@ -168,7 +133,7 @@ async def end_session(
 async def generate_report(
     session_id: str,
     supabase: SupabaseClient,
-    gemini: GeminiClient,
+    agent: ReportAgentDep,
     x_test_mode: Optional[str] = Header(None),
     auth_user: dict = Depends(verify_stack_token),
 ) -> ReportResponse:
@@ -178,7 +143,7 @@ async def generate_report(
     Args:
         session_id: Session identifier from URL path
         supabase: Supabase client dependency
-        gemini: Gemini client dependency
+        agent: ReportAgent dependency
         x_test_mode: Test mode header flag
         auth_user: Authenticated user data from JWT token
 
@@ -189,42 +154,18 @@ async def generate_report(
         HTTPException: If report generation fails
     """
     if x_test_mode == "true":
-        await save_session_report(supabase, session_id, MOCK_FEEDBACK_REPORT)
-        return ReportResponse(report=MOCK_FEEDBACK_REPORT)
+        await save_session_report(supabase, session_id, agent.MOCK_REPORT)
+        return ReportResponse(report=agent.MOCK_REPORT)
 
     try:
-        stored_messages = await get_messages(supabase, session_id, limit=100)
-        if not stored_messages:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No messages found for this session",
-            )
-
-        history = []
-        for msg in stored_messages[::-1]:
-            role = "model" if msg["sender"] == "model" else "user"
-            history.append({"role": role, "parts": [{"text": msg["content"]}]})
-
-        from api.services.prompts import get_system_prompt
-        from api.core.config import settings
-
-        chat = gemini.chats.create(
-            model=settings.GEMINI_MODEL,
-            config={
-                "system_instruction": get_system_prompt(),
-                "max_output_tokens": 4096,
-                "temperature": 0.3,
-            },
-            history=history,
-        )
-
-        response = chat.send_message("Generate a markdown evaluation report")
-        report = response.text
-
+        report = await agent.run(session_id)
         await save_session_report(supabase, session_id, report)
         return ReportResponse(report=report)
-    except HTTPException:
-        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

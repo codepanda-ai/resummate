@@ -8,28 +8,26 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
 from api.auth.stack_auth import verify_stack_token
-from api.core.dependencies import SupabaseClient, GeminiClient
+from api.core.dependencies import GeminiClient, InterviewAgentDep, SupabaseClient
 from api.core.logging import log_info
 from api.core.schemas import (
     ChatRequest,
-    PromptRequest,
-    GenerateResponse,
     ChatHistoryResponse,
-    UIMessage,
-    MessagePart,
+    GenerateResponse,
     Message,
+    MessagePart,
+    PromptRequest,
+    UIMessage,
 )
 from api.db.service import (
     create_message,
+    get_job_description,
     get_messages,
     get_resume,
-    get_job_description,
 )
 from api.services.gemini import (
     generate_response,
-    stream_response,
     stream_resume_required_message,
-    stream_mock_response,
 )
 
 
@@ -93,7 +91,7 @@ async def generate(gemini: GeminiClient, request: PromptRequest) -> GenerateResp
 @router.post("/chat", status_code=status.HTTP_200_OK)
 async def handle_chat(
     supabase: SupabaseClient,
-    gemini: GeminiClient,
+    agent: InterviewAgentDep,
     request: ChatRequest,
     protocol: str = Query("data"),
     x_test_mode: str | None = Header(None),
@@ -103,7 +101,7 @@ async def handle_chat(
 
     Args:
         supabase: Supabase client dependency
-        gemini: Gemini client dependency
+        agent: InterviewAgent dependency
         request: Chat request with messages
         protocol: Streaming protocol type
         x_test_mode: Test mode header flag
@@ -141,7 +139,7 @@ async def handle_chat(
     if x_test_mode == "true":
         log_info("Test mode enabled, returning mock response")
         response = StreamingResponse(
-            stream_mock_response(supabase, thread_id),
+            agent.run_mock(thread_id),
             media_type="text/event-stream",
         )
         return patch_response_with_headers(response, protocol)
@@ -159,9 +157,7 @@ async def handle_chat(
     job_description_reference = job_description[0]["name"] if job_description else None
 
     response = StreamingResponse(
-        stream_response(
-            gemini_client=gemini,
-            supabase=supabase,
+        agent.run(
             prompt=prompt,
             thread_id=thread_id,
             file_reference=resume[0]["name"],
