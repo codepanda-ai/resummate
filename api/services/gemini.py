@@ -201,7 +201,7 @@ async def stream_response(
         if retrieved_job_description:
             contents.append(retrieved_job_description)
 
-        stream = gemini_client.models.generate_content_stream(
+        stream = gemini_client.models.send_message_stream(
             model=settings.GEMINI_MODEL, contents=contents, config=config
         )
 

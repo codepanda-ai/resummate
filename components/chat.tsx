@@ -33,6 +33,7 @@ export function Chat() {
     const loadHistory = async () => {
       try {
         const headers = await getAuthHeaders(user);
+        await fetch(`/api/session/${chatId}`, { headers });
         const res = await fetch(`/api/chat/history/${chatId}`, { headers });
         if (!res.ok) throw new Error('Failed to fetch chat history');
         const data = await res.json();

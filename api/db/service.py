@@ -328,6 +328,39 @@ def _extract_file_data(thread_id: str, file_name: str, file: File) -> Dict[str, 
     }
 
 
+async def get_or_create_session(
+    supabase: Client, session_id: str, user_id: str
+) -> Dict[str, Any]:
+    """
+    Get an existing session or create a new one.
+
+    Args:
+        supabase: Supabase client instance
+        session_id: Session identifier (UUID from URL)
+        user_id: Authenticated user ID
+
+    Returns:
+        Dict[str, Any]: Session data
+
+    Raises:
+        Exception: If session retrieval or creation fails
+    """
+    try:
+        existing = supabase.table("session").select("*").eq("id", session_id).execute()
+        if existing.data:
+            return existing.data[0]
+        data = (
+            supabase.table("session")
+            .insert({"id": session_id, "user_id": user_id})
+            .execute()
+        )
+        return data.data[0]
+    except Exception as e:
+        log_error(f"Error getting or creating session: {e}")
+        traceback.print_exc()
+        raise Exception(f"Error getting or creating session: {e}")
+
+
 def create_or_update_user(supabase: Client, user: User) -> List[Dict[str, Any]]:
     """
     Create or update a user in the database.
