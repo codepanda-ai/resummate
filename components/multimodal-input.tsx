@@ -12,12 +12,13 @@ import React, {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import { useUser } from "@stackframe/stack";
+import { useRouter } from "next/navigation";
 
 import { cn, sanitizeUIMessages } from "@/lib/utils";
 import { getAuthHeadersForFormData, getAuthHeaders } from "@/lib/auth-headers";
 import { useTestMode } from "@/hooks/use-test-mode";
 
-import { Play, StopCircle, Sparkles } from "lucide-react";
+import { Play, StopCircle, Sparkles, Loader2 } from "lucide-react";
 
 import { ArrowUpIcon, StopIcon } from "./icons";
 import { Button } from "./ui/button";
@@ -79,6 +80,7 @@ export function MultimodalInput({
 }) {
   const user = useUser({ or: "redirect" });
   const { isTestMode } = useTestMode();
+  const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const jobDescriptionInputRef = useRef<HTMLInputElement>(null);
@@ -87,6 +89,7 @@ export function MultimodalInput({
   const [attachedResume, setAttachedResume] = useState<{ name: string; type: string } | null>(null);
   const [attachedJobDescription, setAttachedJobDescription] = useState<{ name: string; type: string } | null>(null);
   const [sessionStatus, setSessionStatus] = useState(initialSessionStatus);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   useEffect(() => {
     setSessionStatus(initialSessionStatus);
@@ -242,6 +245,30 @@ export function MultimodalInput({
     setSessionStatus("FINISHED");
   }, [user, isTestMode, chatId]);
 
+  const handleGenerateFeedback = useCallback(async () => {
+    setIsGeneratingReport(true);
+    try {
+      const headers = await getAuthHeaders(user, { testMode: isTestMode });
+      // If a report already exists, navigate directly without regenerating
+      const existing = await fetch(`/api/session/${chatId}/report`, { headers });
+      if (existing.ok) {
+        router.push(`/${chatId}/report`);
+        return;
+      }
+      const response = await fetch(`/api/session/${chatId}/report`, {
+        method: "POST",
+        headers,
+      });
+      if (!response.ok) {
+        throw new Error("Failed to generate report");
+      }
+      router.push(`/${chatId}/report`);
+    } catch {
+      toast.error("Failed to generate feedback report, please try again!");
+      setIsGeneratingReport(false);
+    }
+  }, [user, isTestMode, chatId, router]);
+
   const removeResume = useCallback(async (chatId: string) => {
     setAttachedResume(null);
     try {
@@ -394,11 +421,21 @@ export function MultimodalInput({
       >
         {interviewEnded ? (
           <Button
-            disabled
-            className="w-full rounded-xl px-4 py-3.5 text-sm h-auto bg-blue-900 text-white opacity-100 flex items-center gap-2"
+            onClick={handleGenerateFeedback}
+            disabled={isGeneratingReport}
+            className="w-full rounded-xl px-4 py-3.5 text-sm h-auto bg-blue-900 hover:bg-blue-950 text-white opacity-100 flex items-center justify-start gap-2"
           >
-            <Sparkles size={16} />
-            Generate feedback report
+            {isGeneratingReport ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Generating feedback...
+              </>
+            ) : (
+              <>
+                <Sparkles size={16} />
+                View feedback report
+              </>
+            )}
           </Button>
         ) : interviewStarted ? (
           <Button

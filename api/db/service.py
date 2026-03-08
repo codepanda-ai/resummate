@@ -392,6 +392,62 @@ async def get_or_create_session(
         raise Exception(f"Error getting or creating session: {e}")
 
 
+async def save_session_report(
+    supabase: Client, session_id: str, report: str
+) -> Dict[str, Any]:
+    """
+    Save the generated feedback report for a session.
+
+    Args:
+        supabase: Supabase client instance
+        session_id: Session identifier (UUID)
+        report: Markdown report content
+
+    Returns:
+        Dict[str, Any]: Updated session data
+
+    Raises:
+        Exception: If report save fails
+    """
+    try:
+        data = (
+            supabase.table("session")
+            .update({"report": report})
+            .eq("id", session_id)
+            .execute()
+        )
+        return data.data[0]
+    except Exception as e:
+        log_error(f"Error saving session report: {e}")
+        traceback.print_exc()
+        raise Exception(f"Error saving session report: {e}")
+
+
+async def get_session_report(supabase: Client, session_id: str) -> Optional[str]:
+    """
+    Retrieve the feedback report for a session.
+
+    Args:
+        supabase: Supabase client instance
+        session_id: Session identifier (UUID)
+
+    Returns:
+        Optional[str]: Report markdown content or None if not generated yet
+
+    Raises:
+        Exception: If report retrieval fails
+    """
+    try:
+        data = supabase.table("session").select("report").eq("id", session_id).execute()
+        if not data.data:
+            return None
+        return data.data[0].get("report")
+    except Exception as e:
+        log_error(f"Error getting session report: {e}")
+        traceback.print_exc()
+        raise Exception(f"Error getting session report: {e}")
+
+
 def create_or_update_user(supabase: Client, user: User) -> List[Dict[str, Any]]:
     """
     Create or update a user in the database.
