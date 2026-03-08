@@ -328,6 +328,37 @@ def _extract_file_data(thread_id: str, file_name: str, file: File) -> Dict[str, 
     }
 
 
+async def update_session_status(
+    supabase: Client, session_id: str, new_status: str
+) -> Dict[str, Any]:
+    """
+    Update the status of an existing session.
+
+    Args:
+        supabase: Supabase client instance
+        session_id: Session identifier (UUID)
+        new_status: New status value (IN_PROGRESS or FINISHED)
+
+    Returns:
+        Dict[str, Any]: Updated session data
+
+    Raises:
+        Exception: If session update fails
+    """
+    try:
+        data = (
+            supabase.table("session")
+            .update({"status": new_status})
+            .eq("id", session_id)
+            .execute()
+        )
+        return data.data[0]
+    except Exception as e:
+        log_error(f"Error updating session status: {e}")
+        traceback.print_exc()
+        raise Exception(f"Error updating session status: {e}")
+
+
 async def get_or_create_session(
     supabase: Client, session_id: str, user_id: str
 ) -> Dict[str, Any]:

@@ -22,6 +22,7 @@ export function Chat() {
   const { isTestMode } = useTestMode();
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [initialSessionStatus, setInitialSessionStatus] = useState<string>("NOT_STARTED");
 
   useEffect(() => {
     // Use setTimeout to avoid synchronous setState in effect
@@ -33,7 +34,11 @@ export function Chat() {
     const loadHistory = async () => {
       try {
         const headers = await getAuthHeaders(user);
-        await fetch(`/api/session/${chatId}`, { headers });
+        const sessionRes = await fetch(`/api/session/${chatId}`, { headers });
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          setInitialSessionStatus(sessionData.status ?? "NOT_STARTED");
+        }
         const res = await fetch(`/api/chat/history/${chatId}`, { headers });
         if (!res.ok) throw new Error('Failed to fetch chat history');
         const data = await res.json();
@@ -149,6 +154,7 @@ export function Chat() {
           setMessages={setMessages}
           sendMessage={sendMessage}
           status={status}
+          initialSessionStatus={initialSessionStatus}
         />
       </form>
     </div>

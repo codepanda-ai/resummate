@@ -17,6 +17,8 @@ import { cn, sanitizeUIMessages } from "@/lib/utils";
 import { getAuthHeadersForFormData, getAuthHeaders } from "@/lib/auth-headers";
 import { useTestMode } from "@/hooks/use-test-mode";
 
+import { Play, StopCircle, Sparkles } from "lucide-react";
+
 import { ArrowUpIcon, StopIcon } from "./icons";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
@@ -42,8 +44,6 @@ type ChatRequestOptions = {
 
 const START_INTERVIEW_MESSAGE =
   "Start an interview session with the user based on the uploaded resume and job description";
-const END_INTERVIEW_MESSAGE =
-  "Generate a markdown evaluation report of the user's interview performance with a score out of 100, and an offer/no offer decision. List strengths and areas for improvement";
 
 export function MultimodalInput({
   chatId,
@@ -56,6 +56,7 @@ export function MultimodalInput({
   sendMessage,
   handleSubmit,
   status,
+  initialSessionStatus = "NOT_STARTED",
   className,
 }: {
   chatId: string;
@@ -73,6 +74,7 @@ export function MultimodalInput({
     chatRequestOptions?: ChatRequestOptions
   ) => void;
   status: UseChatHelpers<UIMessage>["status"];
+  initialSessionStatus?: string;
   className?: string;
 }) {
   const user = useUser({ or: "redirect" });
@@ -84,9 +86,16 @@ export function MultimodalInput({
   const [isJobDescriptionLoading, setIsJobDescriptionLoading] = useState<boolean>(false);
   const [attachedResume, setAttachedResume] = useState<{ name: string; type: string } | null>(null);
   const [attachedJobDescription, setAttachedJobDescription] = useState<{ name: string; type: string } | null>(null);
-  const [interviewEnded, setInterviewEnded] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState(initialSessionStatus);
 
-  const interviewStarted = messages.length > 0;
+  useEffect(() => {
+    setSessionStatus(initialSessionStatus);
+  }, [initialSessionStatus]);
+
+  const isNotStarted = sessionStatus === "NOT_STARTED";
+  const isFinished = sessionStatus === "FINISHED";
+  const interviewStarted = !isNotStarted || messages.length > 0;
+  const interviewEnded = isFinished;
   const canStartInterview = !!attachedResume && !!attachedJobDescription;
 
   const { width } = useWindowSize();
@@ -213,6 +222,8 @@ export function MultimodalInput({
 
   const handleStartInterview = useCallback(async () => {
     const headers = await getAuthHeaders(user, { testMode: isTestMode });
+    await fetch(`/api/session/${chatId}/start`, { method: "PATCH", headers });
+    setSessionStatus("IN_PROGRESS");
     sendMessage(
       {
         role: "user",
@@ -227,18 +238,9 @@ export function MultimodalInput({
 
   const handleEndInterview = useCallback(async () => {
     const headers = await getAuthHeaders(user, { testMode: isTestMode });
-    sendMessage(
-      {
-        role: "user",
-        parts: [{ type: "text", text: END_INTERVIEW_MESSAGE }],
-      },
-      {
-        headers: headers as Record<string, string>,
-        body: { id: chatId },
-      }
-    );
-    setInterviewEnded(true);
-  }, [user, isTestMode, sendMessage, chatId]);
+    await fetch(`/api/session/${chatId}/end`, { method: "PATCH", headers });
+    setSessionStatus("FINISHED");
+  }, [user, isTestMode, chatId]);
 
   const removeResume = useCallback(async (chatId: string) => {
     setAttachedResume(null);
@@ -383,48 +385,58 @@ export function MultimodalInput({
 
   return (
     <div className="relative w-full flex flex-col gap-4">
-      {!interviewEnded && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ delay: 0.05 }}
-          className="w-full"
-        >
-          {interviewStarted ? (
-            <Button
-              variant="destructive"
-              onClick={handleEndInterview}
-              disabled={isLoading}
-              className="w-full rounded-xl px-4 py-3.5 text-sm h-auto"
-            >
-              End interview session
-            </Button>
-          ) : (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="w-full">
-                    <Button
-                      variant="default"
-                      onClick={handleStartInterview}
-                      disabled={!canStartInterview || isLoading}
-                      className="w-full rounded-xl px-4 py-3.5 text-sm h-auto"
-                    >
-                      Start interview session
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {!canStartInterview && (
-                  <TooltipContent side="top">
-                    <p>Upload both a resume and job description to start</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </motion.div>
-      )}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ delay: 0.05 }}
+        className="w-full"
+      >
+        {interviewEnded ? (
+          <Button
+            disabled
+            className="w-full rounded-xl px-4 py-3.5 text-sm h-auto bg-blue-900 text-white opacity-100 flex items-center gap-2"
+          >
+            <Sparkles size={16} />
+            Generate feedback report
+          </Button>
+        ) : interviewStarted ? (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleEndInterview}
+            disabled={isLoading}
+            className="w-full rounded-xl px-4 py-3.5 text-sm h-auto flex items-center gap-2"
+          >
+            <StopCircle size={16} />
+            End interview session
+          </Button>
+        ) : (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="w-full">
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={handleStartInterview}
+                    disabled={!canStartInterview || isLoading}
+                    className="w-full rounded-xl px-4 py-3.5 text-sm h-auto flex items-center gap-2"
+                  >
+                    <Play size={16} />
+                    Start interview session
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!canStartInterview && (
+                <TooltipContent side="top">
+                  <p>Upload both a resume and job description to start</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </motion.div>
 
       {/* File Attachments */}
       {(attachedResume || isResumeLoading || attachedJobDescription || isJobDescriptionLoading) && (
@@ -450,10 +462,10 @@ export function MultimodalInput({
 
       <Textarea
         ref={textareaRef}
-        placeholder={canStartInterview ? "Send a message..." : "Upload a resume and job description to begin"}
+        placeholder={isFinished ? "Interview session ended" : isNotStarted ? (canStartInterview ? "Start the interview to begin" : "Upload a resume and job description to begin") : "Send a message..."}
         value={input || ""}
         onChange={handleInput}
-        disabled={!canStartInterview}
+        disabled={isNotStarted || isFinished}
         className={cn(
           "min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl !text-base bg-muted",
           className
@@ -503,6 +515,7 @@ export function MultimodalInput({
         resumeInputRef={resumeInputRef}
         jobDescriptionInputRef={jobDescriptionInputRef}
         status={status}
+        disabled={isFinished}
       />
 
       {isSpeechSupported && !isLoading && (
@@ -510,7 +523,7 @@ export function MultimodalInput({
           isRecording={speechState === "recording"}
           onClick={startRecording}
           status={status}
-          disabled={!canStartInterview}
+          disabled={isNotStarted || isFinished}
         />
       )}
 
@@ -532,7 +545,7 @@ export function MultimodalInput({
             event.preventDefault();
             submitForm();
           }}
-          disabled={!canStartInterview || !input || input.length === 0}
+          disabled={isNotStarted || isFinished || !input || input.length === 0}
         >
           <ArrowUpIcon size={14} />
         </Button>

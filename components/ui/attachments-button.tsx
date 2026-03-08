@@ -15,12 +15,14 @@ interface AttachmentsButtonProps {
   resumeInputRef: React.MutableRefObject<HTMLInputElement | null>;
   jobDescriptionInputRef: React.MutableRefObject<HTMLInputElement | null>;
   status: UseChatHelpers<UIMessage>["status"];
+  disabled?: boolean;
 }
 
 function PureAttachmentsButton({
   resumeInputRef,
   jobDescriptionInputRef,
   status,
+  disabled = false,
 }: AttachmentsButtonProps) {
   return (
     <DropdownMenu>
@@ -28,7 +30,7 @@ function PureAttachmentsButton({
         <Button
           className="rounded-full p-1.5 h-fit absolute bottom-2 left-2 m-0.5 border border-border"
           data-testid="attachments-button"
-          disabled={status !== "ready"}
+          disabled={disabled || status !== "ready"}
           variant="ghost"
         >
           <PaperclipIcon size={14} />
