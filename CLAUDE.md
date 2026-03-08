@@ -178,3 +178,25 @@ Frontend E2E testing uses Playwright (`@playwright/test`).
 - Deployed on Vercel with Git integration.
 - `vercel.json` excludes `.next`, `.git`, `node_modules` from Python function bundles.
 - Use Preview Deployments for PRs before merging to `main`.
+
+## Post-Change Learning Summary
+
+After every code change, append a summary using this exact format.
+Skip this for cosmetic or trivial changes under 5 lines.
+
+### 📋 Change Summary
+
+| # | File | Type | What Changed |
+|---|------|------|--------------|
+| 1 | `src/foo.ts` | Refactor | Extracted helper function |
+
+### 🔍 Technical Details
+
+For each change (max 2-3 bullet points per change):
+- **Why**: The reason this change was made
+- **How**: The technical approach / pattern used
+- **Tradeoffs**: Any alternatives considered or downsides
+- **Concept**: The underlying CS/engineering concept (e.g. "dependency injection", "memoization")
+
+### 🧠 Key Takeaway
+One sentence summarizing the most important thing to understand about this change.
