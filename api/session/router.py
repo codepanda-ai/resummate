@@ -9,10 +9,12 @@ from typing import Optional
 from api.auth.stack_auth import verify_stack_token
 from api.core.dependencies import ReportAgentDep, SupabaseClient
 from api.db.service import (
+    get_job_description,
     get_or_create_session,
-    update_session_status,
-    save_session_report,
+    get_resume,
     get_session_report,
+    save_session_report,
+    update_session_status,
 )
 
 
@@ -78,6 +80,9 @@ async def start_session(
     """
     Mark a session as in progress.
 
+    Validates that both a resume and job description have been uploaded before
+    allowing the session to start.
+
     Args:
         session_id: Session identifier from URL path
         supabase: Supabase client dependency
@@ -85,7 +90,24 @@ async def start_session(
 
     Returns:
         SessionResponse: Updated session data
+
+    Raises:
+        HTTPException: If resume or job description is missing
     """
+    resume = await get_resume(supabase, session_id)
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A resume must be uploaded before starting the interview",
+        )
+
+    job_description = await get_job_description(supabase, session_id)
+    if not job_description:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A job description must be uploaded before starting the interview",
+        )
+
     session = await update_session_status(supabase, session_id, "IN_PROGRESS")
     return SessionResponse(
         id=session["id"],

@@ -96,10 +96,15 @@ export function MultimodalInput({
   }, [initialSessionStatus]);
 
   const isNotStarted = sessionStatus === "NOT_STARTED";
+  const isInProgress = sessionStatus === "IN_PROGRESS";
   const isFinished = sessionStatus === "FINISHED";
   const interviewStarted = !isNotStarted || messages.length > 0;
   const interviewEnded = isFinished;
-  const canStartInterview = !!attachedResume && !!attachedJobDescription;
+  const canStartInterview =
+    !!attachedResume &&
+    !!attachedJobDescription &&
+    !isResumeLoading &&
+    !isJobDescriptionLoading;
 
   const { width } = useWindowSize();
 
@@ -482,7 +487,7 @@ export function MultimodalInput({
             <FileAttachmentComponent
               fileName={attachedResume?.name || "Resume"}
               fileType={attachedResume?.type || "PDF"}
-              onRemove={() => removeResume(chatId)}
+              onRemove={isInProgress || isFinished ? undefined : () => removeResume(chatId)}
               isLoading={isResumeLoading}
             />
           )}
@@ -490,7 +495,7 @@ export function MultimodalInput({
             <FileAttachmentComponent
               fileName={attachedJobDescription?.name || "Job Description"}
               fileType={attachedJobDescription?.type || "PDF"}
-              onRemove={() => removeJobDescription(chatId)}
+              onRemove={isInProgress || isFinished ? undefined : () => removeJobDescription(chatId)}
               isLoading={isJobDescriptionLoading}
             />
           )}
@@ -552,7 +557,7 @@ export function MultimodalInput({
         resumeInputRef={resumeInputRef}
         jobDescriptionInputRef={jobDescriptionInputRef}
         status={status}
-        disabled={isFinished}
+        disabled={isInProgress || isFinished}
       />
 
       {isSpeechSupported && !isLoading && (
