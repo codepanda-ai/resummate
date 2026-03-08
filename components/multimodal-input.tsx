@@ -450,9 +450,10 @@ export function MultimodalInput({
 
       <Textarea
         ref={textareaRef}
-        placeholder="Send a message..."
+        placeholder={canStartInterview ? "Send a message..." : "Upload a resume and job description to begin"}
         value={input || ""}
         onChange={handleInput}
+        disabled={!canStartInterview}
         className={cn(
           "min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl !text-base bg-muted",
           className
@@ -509,6 +510,7 @@ export function MultimodalInput({
           isRecording={speechState === "recording"}
           onClick={startRecording}
           status={status}
+          disabled={!canStartInterview}
         />
       )}
 
@@ -530,7 +532,7 @@ export function MultimodalInput({
             event.preventDefault();
             submitForm();
           }}
-          disabled={!input || input.length === 0}
+          disabled={!canStartInterview || !input || input.length === 0}
         >
           <ArrowUpIcon size={14} />
         </Button>

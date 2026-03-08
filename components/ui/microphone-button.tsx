@@ -10,18 +10,20 @@ interface MicrophoneButtonProps {
   isRecording: boolean;
   onClick: () => void;
   status: UseChatHelpers<UIMessage>["status"];
+  disabled?: boolean;
 }
 
 function PureMicrophoneButton({
   isRecording,
   onClick,
   status,
+  disabled,
 }: MicrophoneButtonProps) {
   return (
     <Button
       className="rounded-full p-1.5 h-fit absolute bottom-2 right-12 m-0.5 border border-border"
       data-testid="microphone-button"
-      disabled={status !== "ready"}
+      disabled={disabled || status !== "ready"}
       onClick={(event) => {
         event.preventDefault();
         onClick();
