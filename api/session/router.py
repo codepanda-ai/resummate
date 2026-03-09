@@ -2,6 +2,7 @@
 Session router for handling session initialization and status transitions.
 """
 
+import asyncio
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -14,6 +15,7 @@ from api.db.service import (
     get_job_description,
     get_or_create_session,
     get_resume,
+    get_session,
     get_session_report,
     save_session_report,
     update_session_status,
@@ -198,8 +200,29 @@ async def generate_report(
         await save_session_report(supabase, session_id, agent.MOCK_REPORT)
         return ReportResponse(report=agent.MOCK_REPORT)
 
+    session, resume, job_description = await asyncio.gather(
+        get_session(supabase, session_id),
+        get_resume(supabase, session_id),
+        get_job_description(supabase, session_id),
+    )
+
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume found for this session",
+        )
+
+    resume_row = resume[0]
+    jd_row = job_description[0] if job_description else None
+
     try:
-        report = await agent.run(session_id)
+        report = await agent.run(
+            session_id=session_id,
+            resume_reference=resume_row["name"],
+            job_description_reference=jd_row["name"] if jd_row else None,
+            started_at=session.get("started_at") if session else None,
+            ended_at=session.get("ended_at") if session else None,
+        )
         await save_session_report(supabase, session_id, report)
         return ReportResponse(report=report)
     except ValueError as e:

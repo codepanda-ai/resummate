@@ -110,9 +110,9 @@ export function MultimodalInput({
 
   const isNotStarted = sessionStatus === "NOT_STARTED";
   const isInProgress = sessionStatus === "IN_PROGRESS";
-  const isFinished = sessionStatus === "FINISHED";
+  const isEnded = sessionStatus === "ENDED";
   const interviewStarted = !isNotStarted || messages.length > 0;
-  const interviewEnded = isFinished;
+  const interviewEnded = isEnded;
   const canStartInterview =
     !!attachedResume &&
     !!attachedJobDescription &&
@@ -267,7 +267,7 @@ export function MultimodalInput({
     try {
       const headers = await getAuthHeaders(user, { testMode: isTestMode });
       await fetch(`/api/session/${chatId}/end`, { method: "PATCH", headers });
-      setSessionStatus("FINISHED");
+      setSessionStatus("ENDED");
     } finally {
       setIsEndingInterview(false);
     }
@@ -551,7 +551,7 @@ export function MultimodalInput({
             <FileAttachmentComponent
               fileName={attachedResume?.name || "Resume"}
               fileType={attachedResume?.type || "PDF"}
-              onRemove={isInProgress || isFinished ? undefined : () => removeResume(chatId)}
+              onRemove={isInProgress || isEnded ? undefined : () => removeResume(chatId)}
               isLoading={isResumeLoading}
             />
           )}
@@ -559,7 +559,7 @@ export function MultimodalInput({
             <FileAttachmentComponent
               fileName={attachedJobDescription?.name || "Job Description"}
               fileType={attachedJobDescription?.type || "PDF"}
-              onRemove={isInProgress || isFinished ? undefined : () => removeJobDescription(chatId)}
+              onRemove={isInProgress || isEnded ? undefined : () => removeJobDescription(chatId)}
               isLoading={isJobDescriptionLoading}
             />
           )}
@@ -568,10 +568,10 @@ export function MultimodalInput({
 
       <Textarea
         ref={textareaRef}
-        placeholder={isFinished ? "Interview session ended" : isNotStarted ? (canStartInterview ? "Start the interview to begin" : "Upload a resume and job description to begin") : "Send a message..."}
+        placeholder={isEnded ? "Interview session ended" : isNotStarted ? (canStartInterview ? "Start the interview to begin" : "Upload a resume and job description to begin") : "Send a message..."}
         value={input || ""}
         onChange={handleInput}
-        disabled={isNotStarted || isFinished}
+        disabled={isNotStarted || isEnded}
         className={cn(
           "min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl !text-base bg-muted",
           className
@@ -621,7 +621,7 @@ export function MultimodalInput({
         resumeInputRef={resumeInputRef}
         jobDescriptionInputRef={jobDescriptionInputRef}
         status={status}
-        disabled={isInProgress || isFinished}
+        disabled={isInProgress || isEnded}
       />
 
       {isSpeechSupported && !isLoading && (
@@ -629,7 +629,7 @@ export function MultimodalInput({
           isRecording={speechState === "recording"}
           onClick={startRecording}
           status={status}
-          disabled={isNotStarted || isFinished}
+          disabled={isNotStarted || isEnded}
         />
       )}
 
@@ -651,7 +651,7 @@ export function MultimodalInput({
             event.preventDefault();
             submitForm();
           }}
-          disabled={isNotStarted || isFinished || !input || input.length === 0}
+          disabled={isNotStarted || isEnded || !input || input.length === 0}
         >
           <ArrowUpIcon size={14} />
         </Button>

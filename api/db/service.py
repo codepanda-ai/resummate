@@ -365,6 +365,31 @@ async def update_session_status(
         raise Exception(f"Error updating session status: {e}")
 
 
+async def get_session(supabase: Client, session_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Retrieve a session row by ID.
+
+    Args:
+        supabase: Supabase client instance
+        session_id: Session identifier (UUID)
+
+    Returns:
+        Optional[Dict[str, Any]]: Full session row or None if not found
+
+    Raises:
+        Exception: If session retrieval fails
+    """
+    try:
+        data = supabase.table("session").select("*").eq("id", session_id).execute()
+        if not data.data:
+            return None
+        return data.data[0]
+    except Exception as e:
+        log_error(f"Error getting session: {e}")
+        traceback.print_exc()
+        raise Exception(f"Error getting session: {e}")
+
+
 async def get_session_user_id(supabase: Client, session_id: str) -> Optional[str]:
     """
     Fetch the user_id that owns a session.
