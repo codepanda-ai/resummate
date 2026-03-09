@@ -4,9 +4,12 @@
 
 Resummate is an AI-powered interview coaching platform that helps job seekers ace their interviews. Users upload their resume and a job description, then engage in realistic mock interview sessions — including role-specific questions, real-time feedback, answer coaching, and post-session performance reports powered by Google Gemini.
 
+The interview experience feels like a real conversation: the AI interviewer speaks questions aloud via the **Web Speech API** (`SpeechSynthesis`), and users respond by voice using the **Web Speech API** (`SpeechRecognition`). Transcribed answers are streamed to the backend for AI evaluation, closing the loop between speech input and intelligent feedback.
+
 - **Frontend:** Next.js 16 (App Router) with React 19, TypeScript
 - **Backend:** FastAPI (Python) REST API
 - **AI:** Google Gemini API via `google-genai`
+- **Speech:** Web Speech API — `SpeechSynthesis` (TTS) + `SpeechRecognition` (STT), browser-native, no third-party service required
 - **Database:** Supabase PostgreSQL
 - **Auth:** Stack Auth (`@stackframe/stack`)
 - **Deployment:** Vercel (frontend + serverless Python backend)

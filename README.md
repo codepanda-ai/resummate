@@ -10,6 +10,7 @@ Resummate is an AI-powered interview coaching platform that helps job seekers pr
 
 ### AI Interview Coach
 - **Mock Interview Sessions**: Realistic, role-specific interviews tailored to your resume and target job
+- **Voice-First Conversation**: The AI interviewer speaks questions aloud (Web Speech API `SpeechSynthesis`) and listens to your spoken answers (`SpeechRecognition`), creating a natural back-and-forth that mirrors a real interview
 - **Real-Time Feedback**: Instant coaching on answer clarity, relevance, and delivery
 - **Adaptive Questioning**: Dynamic follow-up questions based on your responses
 - **Performance Reports**: Detailed post-session analysis with strengths, areas for improvement, and scores
@@ -17,9 +18,10 @@ Resummate is an AI-powered interview coaching platform that helps job seekers pr
 
 ### User Experience
 1. **Upload Resume & Job Description**: Support for PDF, DOCX, and TXT formats
-2. **Start Mock Interview**: AI interviewer conducts a realistic session based on your materials
-3. **Real-Time Coaching**: Receive immediate guidance after each answer
-4. **Performance Report**: Get a comprehensive debrief with actionable next steps
+2. **Start Mock Interview**: The AI interviewer speaks the first question — answer out loud or via text
+3. **Speak Your Answers**: Voice input is transcribed in real-time via `SpeechRecognition` and sent to the AI for evaluation
+4. **Real-Time Coaching**: Receive immediate guidance after each answer
+5. **Performance Report**: Get a comprehensive debrief with actionable next steps
 
 ## Technical Architecture
 
@@ -42,6 +44,12 @@ Resummate is an AI-powered interview coaching platform that helps job seekers pr
 - **Provider**: [Stack Auth](https://stack-auth.com/)
 - **Features**: Open-source authentication, user management, password/SSO/2FA, organizations & teams, permissions & RBAC
 - **Benefits**: Seamless integration, beautiful pre-built components, headless SDK option
+
+**Speech (Browser-Native)**
+- **API**: Web Speech API — no third-party service or API key required
+- **Text-to-Speech**: `SpeechSynthesis` speaks interview questions aloud in the user's chosen voice/language
+- **Speech-to-Text**: `SpeechRecognition` transcribes user answers in real-time; transcript is streamed to the backend for AI evaluation
+- **Fallback**: Text input is always available for unsupported browsers
 
 **AI & Machine Learning**
 - **Provider**: Google Gemini API
