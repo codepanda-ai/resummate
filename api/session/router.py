@@ -13,12 +13,27 @@ from api.db.service import (
     get_or_create_session,
     get_resume,
     get_session_report,
+    list_user_sessions,
     save_session_report,
     update_session_status,
 )
 
 
 router = APIRouter(prefix="/api/session", tags=["session"])
+
+
+class SessionListItem(BaseModel):
+    """Response model for a session list item."""
+
+    id: str
+    status: str
+    created_at: str
+
+
+class SessionListResponse(BaseModel):
+    """Response model for session list."""
+
+    sessions: list[SessionListItem]
 
 
 class SessionResponse(BaseModel):
@@ -34,6 +49,35 @@ class ReportResponse(BaseModel):
     """Response model for session report."""
 
     report: str
+
+
+@router.get(
+    "",
+    response_model=SessionListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def list_sessions(
+    supabase: SupabaseClient,
+    auth_user: dict = Depends(verify_stack_token),
+) -> SessionListResponse:
+    """
+    List the most recent sessions for the authenticated user.
+
+    Returns:
+        SessionListResponse: Up to 20 most recent sessions sorted by creation date
+    """
+    user_id = auth_user["id"]
+    sessions = await list_user_sessions(supabase, user_id)
+    return SessionListResponse(
+        sessions=[
+            SessionListItem(
+                id=s["id"],
+                status=s["status"],
+                created_at=str(s["created_at"]),
+            )
+            for s in sessions
+        ]
+    )
 
 
 @router.get(

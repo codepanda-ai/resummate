@@ -467,6 +467,36 @@ async def get_session_report(supabase: Client, session_id: str) -> Optional[str]
         raise Exception(f"Error getting session report: {e}")
 
 
+async def list_user_sessions(
+    supabase: Client, user_id: str, limit: int = 20
+) -> List[Dict[str, Any]]:
+    """
+    Retrieve the most recent sessions for a user.
+
+    Args:
+        supabase: Supabase client instance
+        user_id: Authenticated user ID
+        limit: Maximum number of sessions to retrieve (default 20)
+
+    Returns:
+        List[Dict[str, Any]]: List of sessions ordered by creation date descending
+    """
+    try:
+        data = (
+            supabase.table("session")
+            .select("id, status, created_at")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return data.data
+    except Exception as e:
+        log_error(f"Error listing user sessions: {e}")
+        traceback.print_exc()
+        raise Exception(f"Error listing user sessions: {e}")
+
+
 def create_or_update_user(supabase: Client, user: User) -> List[Dict[str, Any]]:
     """
     Create or update a user in the database.

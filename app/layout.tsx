@@ -10,6 +10,7 @@ import { TestModeToggle } from "@/components/test-mode-toggle"
 import { ThemeProvider } from "@/components/theme-provider";
 import { TestModeProvider } from "@/hooks/use-test-mode";
 import { ViewSourceCodeButton } from "@/components/ui/source-code-button";
+import { SessionSidebar } from "@/components/session-sidebar";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -33,7 +34,8 @@ export default function RootLayout({
               <TestModeProvider>
                 <Toaster position="top-center" richColors />
                 <Navbar />
-                <main className="pt-14">
+                <SessionSidebar />
+                <main className="pt-14 sm:pr-[270px]">
                   {children}
                 </main>
                 <div className="hidden sm:flex fixed bottom-4 left-4 z-50 flex-col items-center gap-3">
