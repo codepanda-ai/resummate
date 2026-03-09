@@ -15,8 +15,9 @@ import { useUser } from "@stackframe/stack";
 import { useRouter } from "next/navigation";
 
 import { cn, sanitizeUIMessages } from "@/lib/utils";
-import { getAuthHeadersForFormData, getAuthHeaders } from "@/lib/auth-headers";
+import { getAuthHeaders } from "@/lib/auth-headers";
 import { useTestMode } from "@/hooks/use-test-mode";
+import { useDocuments } from "@/hooks/use-documents";
 
 import { Play, StopCircle, Sparkles, Loader2, ArrowRight } from "lucide-react";
 
@@ -95,10 +96,16 @@ export function MultimodalInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const jobDescriptionInputRef = useRef<HTMLInputElement>(null);
-  const [isResumeLoading, setIsResumeLoading] = useState<boolean>(false);
-  const [isJobDescriptionLoading, setIsJobDescriptionLoading] = useState<boolean>(false);
-  const [attachedResume, setAttachedResume] = useState<{ name: string; type: string } | null>(null);
-  const [attachedJobDescription, setAttachedJobDescription] = useState<{ name: string; type: string } | null>(null);
+  const {
+    attachedResume,
+    attachedJobDescription,
+    isResumeLoading,
+    isJobDescriptionLoading,
+    uploadResume,
+    uploadJobDescription,
+    removeResume,
+    removeJobDescription,
+  } = useDocuments(chatId, user);
   const [sessionStatus, setSessionStatus] = useState(initialSessionStatus);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isStartingInterview, setIsStartingInterview] = useState(false);
@@ -192,46 +199,6 @@ export function MultimodalInput({
     adjustHeight();
   };
 
-  const uploadResume = useCallback(async (file: File, chatId: string) => {
-    setIsResumeLoading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("uuid", chatId);
-
-    // Store the attached file info
-    const fileType = file.type.split('/')[1]?.toUpperCase() || 'PDF';
-    setAttachedResume({
-      name: file.name,
-      type: fileType,
-    });
-
-    try {
-      const headers = await getAuthHeadersForFormData(user);
-      const response = await fetch("/api/resume/upload", {
-        method: "POST",
-        headers: headers,
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(file.name + " uploaded successfully!");
-
-        return {
-          url: data.url,
-          name: data.pathname,
-          contentType: data.contentType,
-        };
-      } else {
-        toast.error("Failed to upload resume, please try again!");
-      }
-    } catch {
-      toast.error("Failed to upload resume, please try again!");
-    } finally {
-      setIsResumeLoading(false);
-    }
-  }, [user]);
-
   const submitForm = useCallback(() => {
     handleSubmit(undefined, {});
     setLocalStorageInput("");
@@ -296,147 +263,6 @@ export function MultimodalInput({
       setIsGeneratingReport(false);
     }
   }, [user, isTestMode, chatId, router]);
-
-  const removeResume = useCallback(async (chatId: string) => {
-    setAttachedResume(null);
-    try {
-      const headers = await getAuthHeaders(user);
-      const response = await fetch(`/api/resume/${chatId}`, {
-        method: "DELETE",
-        headers: headers,
-      });
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(data.message);
-      } else {
-        toast.error("Failed to delete resume, please try again!");
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }, [user]);
-
-  const uploadJobDescription = useCallback(async (file: File, chatId: string) => {
-    setIsJobDescriptionLoading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("uuid", chatId);
-    formData.append("type", "job-description");
-
-    const fileType = file.type.split('/')[1]?.toUpperCase() || 'PDF';
-    setAttachedJobDescription({
-      name: file.name,
-      type: fileType,
-    });
-
-    try {
-      const headers = await getAuthHeadersForFormData(user);
-      const response = await fetch("/api/job-description/upload", {
-        method: "POST",
-        headers: headers,
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(file.name + " uploaded successfully!");
-
-        return {
-          url: data.url,
-          name: data.pathname,
-          contentType: data.contentType,
-        };
-      } else {
-        toast.error("Failed to upload job description, please try again!");
-      }
-    } catch {
-      toast.error("Failed to upload job description, please try again!");
-    } finally {
-      setIsJobDescriptionLoading(false);
-    }
-  }, [user]);
-
-  const removeJobDescription = useCallback(async (chatId: string) => {
-    setAttachedJobDescription(null);
-    try {
-      const headers = await getAuthHeaders(user);
-      const response = await fetch(`/api/job-description/${chatId}`, {
-        method: "DELETE",
-        headers: headers,
-      });
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(data.message);
-      } else {
-        toast.error("Failed to delete job description, please try again!");
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }, [user]);
-
-  // Load both resume and job description in parallel with abort controller
-  useEffect(() => {
-    const abortController = new AbortController();
-    const { signal } = abortController;
-
-    const loadFiles = async () => {
-      try {
-        const headers = await getAuthHeaders(user);
-        await Promise.all([
-          fetch(`/api/resume/${chatId}`, { method: "GET", headers: headers, signal })
-            .then(async (response) => {
-              if (response.ok) {
-                const data = await response.json();
-                const fileType = data.contentType.split('/')[1]?.toUpperCase() || 'PDF';
-                setAttachedResume({
-                  name: data.name,
-                  type: fileType,
-                });
-              } else {
-                setAttachedResume(null);
-              }
-            })
-            .catch((error) => {
-              if (error.name !== 'AbortError') {
-                console.error(error);
-                setAttachedResume(null);
-              }
-            }),
-          fetch(`/api/job-description/${chatId}`, { method: "GET", headers: headers, signal })
-            .then(async (response) => {
-              if (response.ok) {
-                const data = await response.json();
-                const fileType = data.contentType.split('/')[1]?.toUpperCase() || 'PDF';
-                setAttachedJobDescription({
-                  name: data.name,
-                  type: fileType,
-                });
-              } else {
-                setAttachedJobDescription(null);
-              }
-            })
-            .catch((error) => {
-              if (error.name !== 'AbortError') {
-                console.error(error);
-                setAttachedJobDescription(null);
-              }
-            })
-        ]);
-      } catch (error) {
-        if (error instanceof Error && error.name !== 'AbortError') {
-          console.error('Error loading files:', error);
-        }
-      }
-    };
-
-    loadFiles();
-
-    // Cleanup: abort ongoing requests when chatId changes or component unmounts
-    return () => {
-      abortController.abort();
-    };
-  }, [chatId, user]);
 
   return (
     <div className="relative w-full flex flex-col gap-4">
