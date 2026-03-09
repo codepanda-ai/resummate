@@ -55,7 +55,7 @@ type ChatRequestOptions = {
 };
 
 const START_INTERVIEW_MESSAGE =
-  "Start an interview session with the user based on the uploaded resume and job description";
+  "Start an interview session. I've attached my resume and the job description — please review them carefully, then greet me, briefly explain the interview format, and open with your first question tailored to a specific project, skill, or experience from my resume that directly aligns with the role.";
 
 export function MultimodalInput({
   chatId,
