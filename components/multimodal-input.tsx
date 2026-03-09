@@ -101,6 +101,8 @@ export function MultimodalInput({
   const [attachedJobDescription, setAttachedJobDescription] = useState<{ name: string; type: string } | null>(null);
   const [sessionStatus, setSessionStatus] = useState(initialSessionStatus);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isStartingInterview, setIsStartingInterview] = useState(false);
+  const [isEndingInterview, setIsEndingInterview] = useState(false);
 
   useEffect(() => {
     setSessionStatus(initialSessionStatus);
@@ -240,25 +242,35 @@ export function MultimodalInput({
   }, [handleSubmit, setLocalStorageInput, width]);
 
   const handleStartInterview = useCallback(async () => {
-    const headers = await getAuthHeaders(user, { testMode: isTestMode });
-    await fetch(`/api/session/${chatId}/start`, { method: "PATCH", headers });
-    setSessionStatus("IN_PROGRESS");
-    sendMessage(
+    setIsStartingInterview(true);
+    try {
+      const headers = await getAuthHeaders(user, { testMode: isTestMode });
+      await fetch(`/api/session/${chatId}/start`, { method: "PATCH", headers });
+      setSessionStatus("IN_PROGRESS");
+      sendMessage(
       {
         role: "user",
         parts: [{ type: "text", text: START_INTERVIEW_MESSAGE }],
       },
-      {
-        headers: headers as Record<string, string>,
-        body: { id: chatId },
-      }
-    );
+        {
+          headers: headers as Record<string, string>,
+          body: { id: chatId },
+        }
+      );
+    } finally {
+      setIsStartingInterview(false);
+    }
   }, [user, isTestMode, sendMessage, chatId]);
 
   const handleEndInterview = useCallback(async () => {
-    const headers = await getAuthHeaders(user, { testMode: isTestMode });
-    await fetch(`/api/session/${chatId}/end`, { method: "PATCH", headers });
-    setSessionStatus("FINISHED");
+    setIsEndingInterview(true);
+    try {
+      const headers = await getAuthHeaders(user, { testMode: isTestMode });
+      await fetch(`/api/session/${chatId}/end`, { method: "PATCH", headers });
+      setSessionStatus("FINISHED");
+    } finally {
+      setIsEndingInterview(false);
+    }
   }, [user, isTestMode, chatId]);
 
   const handleGenerateFeedback = useCallback(async () => {
@@ -460,11 +472,20 @@ export function MultimodalInput({
               <Button
                 type="button"
                 variant="destructive"
-                disabled={isLoading}
+                disabled={isLoading || isEndingInterview}
                 className="w-full rounded-xl px-4 py-3.5 text-sm h-auto flex items-center gap-2"
               >
-                <StopCircle size={16} />
-                End interview session
+                {isEndingInterview ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Ending interview...
+                  </>
+                ) : (
+                  <>
+                    <StopCircle size={16} />
+                    End interview session
+                  </>
+                )}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -496,11 +517,20 @@ export function MultimodalInput({
                     type="button"
                     variant="default"
                     onClick={handleStartInterview}
-                    disabled={!canStartInterview || isLoading}
+                    disabled={!canStartInterview || isLoading || isStartingInterview}
                     className="w-full rounded-xl px-4 py-3.5 text-sm h-auto flex items-center gap-2"
                   >
-                    <Play size={16} />
-                    Start interview session
+                    {isStartingInterview ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Starting interview...
+                      </>
+                    ) : (
+                      <>
+                        <Play size={16} />
+                        Start interview session
+                      </>
+                    )}
                   </Button>
                 </span>
               </TooltipTrigger>
