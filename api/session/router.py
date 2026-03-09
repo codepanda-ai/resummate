@@ -2,6 +2,8 @@
 Session router for handling session initialization and status transitions.
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional
@@ -115,7 +117,12 @@ async def start_session(
             detail="A job description must be uploaded before starting the interview",
         )
 
-    session = await update_session_status(supabase, session_id, "IN_PROGRESS")
+    session = await update_session_status(
+        supabase,
+        session_id,
+        "IN_PROGRESS",
+        {"started_at": datetime.now(timezone.utc).isoformat()},
+    )
     return SessionResponse(
         id=session["id"],
         user_id=session["user_id"],
@@ -135,7 +142,7 @@ async def end_session(
     auth_user: SessionOwner,
 ) -> SessionResponse:
     """
-    Mark a session as finished.
+    Mark a session as ended.
 
     Args:
         session_id: Session identifier from URL path
@@ -145,7 +152,12 @@ async def end_session(
     Returns:
         SessionResponse: Updated session data
     """
-    session = await update_session_status(supabase, session_id, "FINISHED")
+    session = await update_session_status(
+        supabase,
+        session_id,
+        "ENDED",
+        {"ended_at": datetime.now(timezone.utc).isoformat()},
+    )
     return SessionResponse(
         id=session["id"],
         user_id=session["user_id"],

@@ -331,15 +331,19 @@ def _extract_file_data(session_id: str, file_name: str, file: File) -> Dict[str,
 
 
 async def update_session_status(
-    supabase: Client, session_id: str, new_status: str
+    supabase: Client,
+    session_id: str,
+    new_status: str,
+    extra_fields: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Update the status of an existing session.
+    Update the status of an existing session, with optional extra fields.
 
     Args:
         supabase: Supabase client instance
         session_id: Session identifier (UUID)
-        new_status: New status value (IN_PROGRESS or FINISHED)
+        new_status: New status value (IN_PROGRESS, ENDED, etc.)
+        extra_fields: Optional additional columns to update (e.g. started_at, ended_at)
 
     Returns:
         Dict[str, Any]: Updated session data
@@ -348,11 +352,11 @@ async def update_session_status(
         Exception: If session update fails
     """
     try:
+        update_data: Dict[str, Any] = {"status": new_status}
+        if extra_fields:
+            update_data.update(extra_fields)
         data = (
-            supabase.table("session")
-            .update({"status": new_status})
-            .eq("id", session_id)
-            .execute()
+            supabase.table("session").update(update_data).eq("id", session_id).execute()
         )
         return data.data[0]
     except Exception as e:
