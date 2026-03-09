@@ -1,6 +1,13 @@
 'use client'
 
+import { Info } from "lucide-react"
 import { useTestMode } from "@/hooks/use-test-mode"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export function TestModeToggle() {
   const { isTestMode, setIsTestMode, hasMounted } = useTestMode()
@@ -9,7 +16,19 @@ export function TestModeToggle() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm font-medium text-foreground">Test Mode</span>
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="flex items-center gap-1 cursor-default">
+              <span className="text-sm font-medium text-foreground">Test Mode</span>
+              <Info className="h-3.5 w-3.5 text-muted-foreground" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-56 text-center leading-snug">
+            Uses mock data — no real AI API calls are made
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
         <button
           type="button"
           role="switch"
@@ -59,3 +78,4 @@ export function TestModeToggle() {
     </div>
   )
 }
+
