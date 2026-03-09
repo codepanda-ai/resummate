@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Resummate is an AI-powered resume review platform that helps job seekers create top-tier applications. Users upload resumes (PDF, DOCX, TXT) and job descriptions, then receive interactive coaching via a chat interface — including ATS optimization, keyword alignment, action verb enhancement, and section-by-section feedback powered by Google Gemini.
+Resummate is an AI-powered interview coaching platform that helps job seekers ace their interviews. Users upload their resume and a job description, then engage in realistic mock interview sessions — including role-specific questions, real-time feedback, answer coaching, and post-session performance reports powered by Google Gemini.
 
 - **Frontend:** Next.js 16 (App Router) with React 19, TypeScript
 - **Backend:** FastAPI (Python) REST API
@@ -58,9 +58,11 @@ pnpm fastapi-dev     # FastAPI on :8000
 │   ├── core/               # Config, dependencies, logging, schemas
 │   ├── db/                 # Supabase database service
 │   ├── services/           # Gemini AI, prompts, tools
+│   ├── agents/             # Interview & report agent logic
 │   ├── chat/               # Chat domain router
 │   ├── resume/             # Resume domain router
 │   ├── job_description/    # Job description domain router
+│   ├── session/            # Interview session domain router
 │   └── user/               # User domain router
 │
 ├── components/             # Shared React components
@@ -93,7 +95,7 @@ pnpm fastapi-dev     # FastAPI on :8000
 
 ### Backend (Python/FastAPI)
 
-- **Domain-driven structure:** Each domain (chat, resume, job_description, user) has its own `router.py`.
+- **Domain-driven structure:** Each domain (chat, resume, job_description, session, user) has its own `router.py`.
 - **Config:** `pydantic-settings` in `api/core/config.py`, reads from environment variables.
 - **Dependencies:** Use FastAPI `Depends()` for injection (DB sessions, auth, etc.).
 - **Auth:** Stack Auth verification in `api/auth/stack_auth.py`. All API endpoints require authentication.
@@ -119,6 +121,10 @@ In development, Next.js rewrites `/api/*` to `http://127.0.0.1:8000/api/*` (the 
 | `POST` | `/api/job-description/upload` | Upload job description |
 | `GET` | `/api/job-description/{thread_id}` | Get job description info |
 | `DELETE` | `/api/job-description/{thread_id}` | Delete job description |
+| `POST` | `/api/session/start` | Start a new interview session |
+| `POST` | `/api/session/{session_id}/respond` | Submit answer and get next question |
+| `POST` | `/api/session/{session_id}/end` | End session and generate report |
+| `GET` | `/api/session/{session_id}/report` | Get post-session performance report |
 
 ### Database (Supabase PostgreSQL)
 

@@ -1,26 +1,25 @@
 # Resummate
 
-> Transform your resume into a Top 1% application with AI-powered career coaching
+> Ace your next interview with AI-powered coaching and realistic mock sessions
 
 ## Overview
 
-Resummate is an intelligent resume review platform that combines modern hiring standards, ATS optimization, and personalized coaching to help job seekers create exceptional applications. By leveraging advanced AI analysis, Resummate provides actionable feedback on resume content, formatting, keyword alignment, and overall effectiveness.
+Resummate is an AI-powered interview coaching platform that helps job seekers prepare for and excel in interviews. Users upload their resume and a target job description, then engage in personalized mock interview sessions — complete with role-specific questions, real-time answer feedback, and comprehensive post-session performance reports powered by Google Gemini.
 
 ## Product Features
 
-### AI Career Strategist
-- **Comprehensive Resume Analysis**: Deep evaluation of content, structure, and presentation
-- **ATS Optimization**: Ensures resumes pass Applicant Tracking Systems with proper formatting and keyword usage
-- **Interactive Coaching**: Real-time, personalized guidance tailored to your target role and industry
-- **Action Verb Enhancement**: Identifies weak language and suggests powerful alternatives
-- **Keyword Alignment**: Matches resume content with job description requirements
-- **Modern Standards**: Feedback based on current hiring best practices and recruiter expectations
+### AI Interview Coach
+- **Mock Interview Sessions**: Realistic, role-specific interviews tailored to your resume and target job
+- **Real-Time Feedback**: Instant coaching on answer clarity, relevance, and delivery
+- **Adaptive Questioning**: Dynamic follow-up questions based on your responses
+- **Performance Reports**: Detailed post-session analysis with strengths, areas for improvement, and scores
+- **Role & Industry Awareness**: Questions and feedback calibrated to the specific job description
 
 ### User Experience
-1. **Upload Resume**: Support for PDF, DOCX, and TXT formats
-2. **Instant Analysis**: AI-powered review of resume content and structure
-3. **Detailed Feedback**: Section-by-section recommendations with specific examples
-4. **Iterative Improvement**: Continuous coaching to refine and optimize applications
+1. **Upload Resume & Job Description**: Support for PDF, DOCX, and TXT formats
+2. **Start Mock Interview**: AI interviewer conducts a realistic session based on your materials
+3. **Real-Time Coaching**: Receive immediate guidance after each answer
+4. **Performance Report**: Get a comprehensive debrief with actionable next steps
 
 ## Technical Architecture
 
@@ -46,38 +45,12 @@ Resummate is an intelligent resume review platform that combines modern hiring s
 
 **AI & Machine Learning**
 - **Provider**: Google Gemini API
-- **Capabilities**: Natural language understanding, resume parsing, content generation, personalized recommendations
+- **Capabilities**: Natural language understanding, document parsing, interview question generation, answer evaluation, performance reporting
 
 **Database**
 - **Platform**: Supabase PostgreSQL
 - **Features**: Persistent storage, real-time capabilities, row-level security
-- **Data**: User profiles, resume versions, analysis history, feedback cache
-
-### Responsive Design with Tailwind CSS
-
-Resummate provides a fully responsive user experience across all device sizes, from mobile phones to desktop monitors. This is achieved through Tailwind CSS's utility-first approach and mobile-first breakpoint system.
-
-#### Key Responsive Features
-
-**Mobile-First Approach**
-- Base styles target mobile devices by default
-- Breakpoint utilities progressively enhance for larger screens
-- Ensures optimal performance on mobile devices
-
-**Tailwind Breakpoints**
-```
-sm:  640px  - Small devices (landscape phones)
-md:  768px  - Medium devices (tablets)
-lg:  1024px - Large devices (desktops)
-xl:  1280px - Extra large devices (large desktops)
-2xl: 1536px - 2X large devices (larger desktops)
-```
-
-**Benefits**
-- Seamless experience across all devices
-- Improved mobile usability and performance
-- Reduced layout shift and better Core Web Vitals
-- Maintainable and readable responsive code
+- **Data**: User profiles, uploaded documents, interview sessions, performance reports
 
 ---
 
@@ -87,6 +60,10 @@ xl:  1280px - Extra large devices (large desktops)
 
 ```
 api/
+├── agents/                  # AI agent logic
+│   ├── interview_agent.py  # Mock interview conductor
+│   ├── report_agent.py     # Post-session performance reporter
+│   └── context.py          # Session context management
 ├── chat/                    # Chat domain
 │   ├── __init__.py
 │   └── router.py           # Chat endpoints
@@ -96,6 +73,9 @@ api/
 ├── job_description/         # Job description domain
 │   ├── __init__.py
 │   └── router.py           # Job description endpoints
+├── session/                 # Interview session domain
+│   ├── __init__.py
+│   └── router.py           # Session endpoints
 ├── core/                    # Core application modules
 │   ├── __init__.py
 │   ├── config.py           # Configuration using pydantic-settings
@@ -111,7 +91,7 @@ api/
 │   ├── prompts.py          # System prompts and utilities
 │   └── tools.py            # AI function calling tools
 ├── main.py                  # Main application entry point
-└── index.py                 # Legacy compatibility wrapper
+└── index.py                 # Vercel serverless wrapper
 ```
 
 ### Architecture Principles
@@ -198,6 +178,12 @@ LOG_LEVEL=INFO
 - `GET /api/job-description/{thread_id}` - Get job description info
 - `DELETE /api/job-description/{thread_id}` - Delete job description
 
+#### Interview Session
+- `POST /api/session/start` - Start a new interview session
+- `POST /api/session/{session_id}/respond` - Submit answer and get next question
+- `POST /api/session/{session_id}/end` - End session and generate report
+- `GET /api/session/{session_id}/report` - Get post-session performance report
+
 ### Development
 
 #### Installation
@@ -251,4 +237,4 @@ For technical questions or support, contact dan.deng.wei@gmail.com
 
 ---
 
-Built with ❤️ to help job seekers succeed
+Built with ❤️ to help job seekers ace their interviews
