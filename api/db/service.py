@@ -31,7 +31,7 @@ async def create_message(supabase: Client, message: Message) -> List[Dict[str, A
             supabase.table("message")
             .insert(
                 {
-                    "thread_id": message.thread_id,
+                    "session_id": message.session_id,
                     "sender": message.sender,
                     "content": message.content,
                 }
@@ -46,14 +46,14 @@ async def create_message(supabase: Client, message: Message) -> List[Dict[str, A
 
 
 async def get_messages(
-    supabase: Client, thread_id: str, limit: int = 20
+    supabase: Client, session_id: str, limit: int = 20
 ) -> List[Dict[str, Any]]:
     """
     Retrieve messages for a specific thread.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
         limit: Maximum number of messages to retrieve
 
     Returns:
@@ -66,7 +66,7 @@ async def get_messages(
         query = (
             supabase.table("message")
             .select("*")
-            .eq("thread_id", thread_id)
+            .eq("session_id", session_id)
             .order("sent_at", desc=True)
             .limit(limit)
         )
@@ -79,14 +79,14 @@ async def get_messages(
 
 
 async def save_resume(
-    supabase: Client, thread_id: str, file_name: str, resume_file: File
+    supabase: Client, session_id: str, file_name: str, resume_file: File
 ) -> List[Dict[str, Any]]:
     """
     Save or update a resume file in the database.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
         file_name: Name of the file
         resume_file: Google GenAI File object
 
@@ -96,18 +96,18 @@ async def save_resume(
     Raises:
         Exception: If resume save fails
     """
-    file_data = _extract_file_data(thread_id, file_name, resume_file)
+    file_data = _extract_file_data(session_id, file_name, resume_file)
 
     try:
         existing_resume = (
-            supabase.table("resume").select("*").eq("thread_id", thread_id).execute()
+            supabase.table("resume").select("*").eq("session_id", session_id).execute()
         )
 
         if existing_resume.data:
             data = (
                 supabase.table("resume")
                 .update(file_data)
-                .eq("thread_id", thread_id)
+                .eq("session_id", session_id)
                 .execute()
             )
         else:
@@ -121,14 +121,14 @@ async def save_resume(
 
 
 async def get_resume(
-    supabase: Client, thread_id: str
+    supabase: Client, session_id: str
 ) -> Optional[List[Dict[str, Any]]]:
     """
     Retrieve resume for a specific thread.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
 
     Returns:
         Optional[List[Dict[str, Any]]]: Resume data or None if not found
@@ -137,7 +137,9 @@ async def get_resume(
         Exception: If resume retrieval fails
     """
     try:
-        data = supabase.table("resume").select("*").eq("thread_id", thread_id).execute()
+        data = (
+            supabase.table("resume").select("*").eq("session_id", session_id).execute()
+        )
         if not data.data:
             return None
         return data.data
@@ -148,14 +150,14 @@ async def get_resume(
 
 
 async def delete_resume(
-    supabase: Client, thread_id: str
+    supabase: Client, session_id: str
 ) -> Optional[List[Dict[str, Any]]]:
     """
     Delete resume for a specific thread.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
 
     Returns:
         Optional[List[Dict[str, Any]]]: Deleted resume data or None if not found
@@ -165,12 +167,12 @@ async def delete_resume(
     """
     try:
         existing_resume = (
-            supabase.table("resume").select("*").eq("thread_id", thread_id).execute()
+            supabase.table("resume").select("*").eq("session_id", session_id).execute()
         )
         if not existing_resume.data:
             return None
 
-        data = supabase.table("resume").delete().eq("thread_id", thread_id).execute()
+        data = supabase.table("resume").delete().eq("session_id", session_id).execute()
         return data.data
     except Exception as e:
         log_error(f"Error deleting resume: {e}")
@@ -179,14 +181,14 @@ async def delete_resume(
 
 
 async def save_job_description(
-    supabase: Client, thread_id: str, file_name: str, job_description_file: File
+    supabase: Client, session_id: str, file_name: str, job_description_file: File
 ) -> List[Dict[str, Any]]:
     """
     Save or update a job description file in the database.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
         file_name: Name of the file
         job_description_file: Google GenAI File object
 
@@ -196,13 +198,13 @@ async def save_job_description(
     Raises:
         Exception: If job description save fails
     """
-    file_data = _extract_file_data(thread_id, file_name, job_description_file)
+    file_data = _extract_file_data(session_id, file_name, job_description_file)
 
     try:
         existing_job_description = (
             supabase.table("job_description")
             .select("*")
-            .eq("thread_id", thread_id)
+            .eq("session_id", session_id)
             .execute()
         )
 
@@ -210,7 +212,7 @@ async def save_job_description(
             data = (
                 supabase.table("job_description")
                 .update(file_data)
-                .eq("thread_id", thread_id)
+                .eq("session_id", session_id)
                 .execute()
             )
         else:
@@ -224,14 +226,14 @@ async def save_job_description(
 
 
 async def get_job_description(
-    supabase: Client, thread_id: str
+    supabase: Client, session_id: str
 ) -> Optional[List[Dict[str, Any]]]:
     """
     Retrieve job description for a specific thread.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
 
     Returns:
         Optional[List[Dict[str, Any]]]: Job description data or None if not found
@@ -243,7 +245,7 @@ async def get_job_description(
         data = (
             supabase.table("job_description")
             .select("*")
-            .eq("thread_id", thread_id)
+            .eq("session_id", session_id)
             .execute()
         )
         if not data.data:
@@ -256,14 +258,14 @@ async def get_job_description(
 
 
 async def delete_job_description(
-    supabase: Client, thread_id: str
+    supabase: Client, session_id: str
 ) -> Optional[List[Dict[str, Any]]]:
     """
     Delete job description for a specific thread.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
 
     Returns:
         Optional[List[Dict[str, Any]]]: Deleted job description data or None if not found
@@ -275,7 +277,7 @@ async def delete_job_description(
         existing_job_description = (
             supabase.table("job_description")
             .select("*")
-            .eq("thread_id", thread_id)
+            .eq("session_id", session_id)
             .execute()
         )
         if not existing_job_description.data:
@@ -284,7 +286,7 @@ async def delete_job_description(
         data = (
             supabase.table("job_description")
             .delete()
-            .eq("thread_id", thread_id)
+            .eq("session_id", session_id)
             .execute()
         )
         return data.data
@@ -294,12 +296,12 @@ async def delete_job_description(
         raise Exception(f"Error deleting job description: {e}")
 
 
-def _extract_file_data(thread_id: str, file_name: str, file: File) -> Dict[str, Any]:
+def _extract_file_data(session_id: str, file_name: str, file: File) -> Dict[str, Any]:
     """
     Extract file attributes from Google GenAI File object.
 
     Args:
-        thread_id: Thread identifier
+        session_id: Thread identifier
         file_name: Name of the file
         file: Google GenAI File object
 
@@ -307,7 +309,7 @@ def _extract_file_data(thread_id: str, file_name: str, file: File) -> Dict[str, 
         Dict[str, Any]: Extracted file data
     """
     return {
-        "thread_id": thread_id,
+        "session_id": session_id,
         "file_name": file_name,
         "name": getattr(file, "name", None),
         "mime_type": getattr(file, "mime_type", None),
@@ -357,6 +359,23 @@ async def update_session_status(
         log_error(f"Error updating session status: {e}")
         traceback.print_exc()
         raise Exception(f"Error updating session status: {e}")
+
+
+async def get_session_user_id(supabase: Client, session_id: str) -> Optional[str]:
+    """
+    Fetch the user_id that owns a session.
+
+    Args:
+        supabase: Supabase client instance
+        session_id: Session identifier (UUID)
+
+    Returns:
+        Optional[str]: The owner's user_id, or None if session not found
+    """
+    data = supabase.table("session").select("user_id").eq("id", session_id).execute()
+    if not data.data:
+        return None
+    return data.data[0]["user_id"]
 
 
 async def get_or_create_session(

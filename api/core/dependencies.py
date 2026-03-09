@@ -4,11 +4,12 @@ Dependency injection providers for the application.
 
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from google import genai
 from supabase import Client, create_client
 
 from .config import settings
+from api.auth.stack_auth import verify_stack_token
 
 if TYPE_CHECKING:
     from api.agents.interview_agent import InterviewAgent
@@ -40,6 +41,36 @@ def get_gemini_client() -> genai.Client:
 # Primitive client type aliases
 SupabaseClient = Annotated[Client, Depends(get_supabase_client)]
 GeminiClient = Annotated[genai.Client, Depends(get_gemini_client)]
+
+
+async def verify_session_owner(
+    session_id: str,
+    supabase: SupabaseClient,
+    auth_user: dict = Depends(verify_stack_token),
+) -> dict:
+    """
+    Verify the authenticated user owns the session referenced in the URL.
+
+    Args:
+        session_id: Session identifier resolved from the URL path
+        supabase: Supabase client dependency
+        auth_user: Authenticated user data from JWT token
+
+    Returns:
+        dict: The authenticated user payload
+
+    Raises:
+        HTTPException: 403 if the session does not exist or belongs to another user
+    """
+    from api.db.service import get_session_user_id
+
+    owner_id = await get_session_user_id(supabase, session_id)
+    if owner_id is None or owner_id != auth_user["id"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    return auth_user
+
+
+SessionOwner = Annotated[dict, Depends(verify_session_owner)]
 
 
 def get_interview_agent(

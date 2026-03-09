@@ -91,14 +91,14 @@ async def upload_file(gemini_client: genai.Client, file: UploadFile) -> GeminiFi
 
 
 async def stream_resume_required_message(
-    supabase: Client, thread_id: str
+    supabase: Client, session_id: str
 ) -> AsyncGenerator[str, None]:
     """
     Stream a message requesting resume upload.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
 
     Yields:
         str: SSE formatted response chunks
@@ -119,7 +119,7 @@ async def stream_resume_required_message(
     yield format_sse({"type": "text-end", "id": text_stream_id})
 
     await create_message(
-        supabase, Message(thread_id=thread_id, sender="model", content=message_text)
+        supabase, Message(session_id=session_id, sender="model", content=message_text)
     )
 
     yield format_sse({"type": "finish"})

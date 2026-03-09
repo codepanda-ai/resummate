@@ -7,7 +7,7 @@ import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
 import { useChat, type UIMessage } from "@ai-sdk/react";
 import { toast } from "sonner";
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@stackframe/stack";
 import { Spinner } from "@/components/ui/spinner";
 import { getAuthHeaders } from "@/lib/auth-headers";
@@ -15,6 +15,7 @@ import { useTestMode } from "@/hooks/use-test-mode";
 
 export function Chat() {
   const user = useUser({ or: "redirect" });
+  const router = useRouter();
   const params = useParams();
   const uuid = params?.uuid as string;
   const chatId = uuid || "001";
@@ -35,6 +36,11 @@ export function Chat() {
       try {
         const headers = await getAuthHeaders(user);
         const sessionRes = await fetch(`/api/session/${chatId}`, { headers });
+        if (sessionRes.status === 403) {
+          // This session belongs to another user — redirect to a fresh one
+          router.replace(`/${crypto.randomUUID()}`);
+          return;
+        }
         if (sessionRes.ok) {
           const sessionData = await sessionRes.json();
           setInitialSessionStatus(sessionData.status ?? "NOT_STARTED");
@@ -53,7 +59,7 @@ export function Chat() {
     loadHistory();
 
     return () => clearTimeout(timeoutId);
-  }, [chatId, user]);
+  }, [chatId, router, user]);
 
   const { messages, setMessages, sendMessage, status, stop } = useChat({
     id: chatId,

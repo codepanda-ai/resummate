@@ -106,7 +106,7 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
     async def run(
         self,
         prompt: str,
-        thread_id: str,
+        session_id: str,
         file_reference: str,
         job_description_reference: Optional[str] = None,
     ) -> AsyncGenerator[str, None]:
@@ -118,7 +118,7 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
 
         Args:
             prompt: Current user message text
-            thread_id: Thread/session identifier
+            session_id: Thread/session identifier
             file_reference: Gemini file name for the resume
             job_description_reference: Optional Gemini file name for the job description
 
@@ -145,7 +145,7 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
             )
 
         history = await build_chat_history(
-            self.supabase, thread_id, limit=100, exclude_latest=True
+            self.supabase, session_id, limit=100, exclude_latest=True
         )
 
         chat = self.gemini.chats.create(
@@ -188,7 +188,7 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
                 await create_message(
                     self.supabase,
                     Message(
-                        thread_id=thread_id,
+                        session_id=session_id,
                         sender="model",
                         content=accumulated_content,
                     ),
@@ -206,12 +206,12 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
             yield "data: [DONE]\n\n"
             raise
 
-    async def run_mock(self, thread_id: str) -> AsyncGenerator[str, None]:
+    async def run_mock(self, session_id: str) -> AsyncGenerator[str, None]:
         """
         Stream a random mock response for test mode.
 
         Args:
-            thread_id: Thread/session identifier
+            session_id: Thread/session identifier
 
         Yields:
             str: SSE-formatted response chunks
@@ -233,7 +233,7 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
 
         await create_message(
             self.supabase,
-            Message(thread_id=thread_id, sender="model", content=message_text),
+            Message(session_id=session_id, sender="model", content=message_text),
         )
 
         yield format_sse({"type": "finish"})

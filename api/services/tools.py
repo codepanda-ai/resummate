@@ -23,28 +23,28 @@ def get_message_history_function() -> Dict[str, Any]:
         "parameters": {
             "type": "object",
             "properties": {
-                "thread_id": {
+                "session_id": {
                     "type": "string",
                     "description": "The thread ID",
                 },
             },
-            "required": ["thread_id"],
+            "required": ["session_id"],
         },
     }
 
 
-async def get_message_history(supabase: Client, thread_id: str) -> List[str]:
+async def get_message_history(supabase: Client, session_id: str) -> List[str]:
     """
     Get the message history for a given thread.
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread identifier
+        session_id: Thread identifier
 
     Returns:
         List[str]: List of message contents
     """
-    data = await get_messages(supabase, thread_id)
+    data = await get_messages(supabase, session_id)
     return [message["content"] for message in data]
 
 

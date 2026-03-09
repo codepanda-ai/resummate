@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from api.auth.stack_auth import verify_stack_token
-from api.core.dependencies import ReportAgentDep, SupabaseClient
+from api.core.dependencies import ReportAgentDep, SessionOwner, SupabaseClient
 from api.db.service import (
     get_job_description,
     get_or_create_session,
@@ -49,6 +49,8 @@ async def get_or_init_session(
     """
     Get an existing session or create a new one.
 
+    If the session already exists, verifies the authenticated user owns it.
+
     Args:
         session_id: Session identifier from URL path
         supabase: Supabase client dependency
@@ -56,9 +58,14 @@ async def get_or_init_session(
 
     Returns:
         SessionResponse: Session data
+
+    Raises:
+        HTTPException: 403 if session exists and belongs to a different user
     """
     user_id = auth_user["id"]
     session = await get_or_create_session(supabase, session_id, user_id)
+    if session["user_id"] != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     return SessionResponse(
         id=session["id"],
         user_id=session["user_id"],
@@ -75,7 +82,7 @@ async def get_or_init_session(
 async def start_session(
     session_id: str,
     supabase: SupabaseClient,
-    auth_user: dict = Depends(verify_stack_token),
+    auth_user: SessionOwner,
 ) -> SessionResponse:
     """
     Mark a session as in progress.
@@ -86,7 +93,7 @@ async def start_session(
     Args:
         session_id: Session identifier from URL path
         supabase: Supabase client dependency
-        auth_user: Authenticated user data from JWT token
+        auth_user: Authenticated user data (ownership verified)
 
     Returns:
         SessionResponse: Updated session data
@@ -125,7 +132,7 @@ async def start_session(
 async def end_session(
     session_id: str,
     supabase: SupabaseClient,
-    auth_user: dict = Depends(verify_stack_token),
+    auth_user: SessionOwner,
 ) -> SessionResponse:
     """
     Mark a session as finished.
@@ -133,7 +140,7 @@ async def end_session(
     Args:
         session_id: Session identifier from URL path
         supabase: Supabase client dependency
-        auth_user: Authenticated user data from JWT token
+        auth_user: Authenticated user data (ownership verified)
 
     Returns:
         SessionResponse: Updated session data
@@ -156,8 +163,8 @@ async def generate_report(
     session_id: str,
     supabase: SupabaseClient,
     agent: ReportAgentDep,
+    auth_user: SessionOwner,
     x_test_mode: Optional[str] = Header(None),
-    auth_user: dict = Depends(verify_stack_token),
 ) -> ReportResponse:
     """
     Generate a markdown feedback report for a completed interview session.
@@ -166,8 +173,8 @@ async def generate_report(
         session_id: Session identifier from URL path
         supabase: Supabase client dependency
         agent: ReportAgent dependency
+        auth_user: Authenticated user data (ownership verified)
         x_test_mode: Test mode header flag
-        auth_user: Authenticated user data from JWT token
 
     Returns:
         ReportResponse: Generated markdown report
@@ -203,7 +210,7 @@ async def generate_report(
 async def get_report(
     session_id: str,
     supabase: SupabaseClient,
-    auth_user: dict = Depends(verify_stack_token),
+    auth_user: SessionOwner,
 ) -> ReportResponse:
     """
     Retrieve the generated feedback report for a session.
@@ -211,7 +218,7 @@ async def get_report(
     Args:
         session_id: Session identifier from URL path
         supabase: Supabase client dependency
-        auth_user: Authenticated user data from JWT token
+        auth_user: Authenticated user data (ownership verified)
 
     Returns:
         ReportResponse: Saved markdown report

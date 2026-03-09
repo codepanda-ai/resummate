@@ -16,7 +16,7 @@ from api.db.service import get_messages
 
 async def build_chat_history(
     supabase: Client,
-    thread_id: str,
+    session_id: str,
     limit: int = 100,
     exclude_latest: bool = False,
 ) -> List[Dict[str, Any]]:
@@ -25,7 +25,7 @@ async def build_chat_history(
 
     Args:
         supabase: Supabase client instance
-        thread_id: Thread/session identifier
+        session_id: Thread/session identifier
         limit: Maximum number of messages to fetch
         exclude_latest: If True, skip the most recent message (useful when
             the caller already saved the current user message before building
@@ -34,7 +34,7 @@ async def build_chat_history(
     Returns:
         List[Dict[str, Any]]: History in Gemini chat format (chronological order)
     """
-    all_messages = await get_messages(supabase, thread_id, limit=limit)
+    all_messages = await get_messages(supabase, session_id, limit=limit)
     messages = all_messages[1:] if exclude_latest else all_messages
 
     history: List[Dict[str, Any]] = []

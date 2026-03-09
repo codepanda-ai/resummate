@@ -90,7 +90,7 @@ class PromptRequest(BaseModel):
 class Message(BaseModel):
     """Database message model."""
 
-    thread_id: str
+    session_id: str
     sender: str
     content: str
 
