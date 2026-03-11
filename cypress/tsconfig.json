@@ -2,11 +2,10 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "types": ["cypress"],
-    "isolatedModules": false,
-    "module": "commonjs",
-    "moduleResolution": "node"
+    "isolatedModules": false
   },
   "include": [
     "**/*.ts"
-  ]
+  ],
+  "exclude": []
 }

@@ -1,60 +1,26 @@
 /**
- * Full Interview Flow E2E Tests
+ * Full Interview Flow E2E Test
  *
- * Tests the end-to-end user journey in two test cases:
- *
- * Test 1 — Landing through end of interview:
- *   1. Open landing page -> redirects to UUID chat route
- *   2. Upload resume and job description
- *   3. Start interview session
- *   4. Reply to interview question with text
- *   5. End interview session
- *
- * Test 2 — View feedback report:
- *   6. Navigate to ended session and view the generated report
+ * Tests the entire end-to-end user journey in a single test:
+ * 1. Open landing page -> redirects to UUID chat route
+ * 2. Upload resume and job description
+ * 3. Start interview session
+ * 4. Reply to interview question with text
+ * 5. End interview session
+ * 6. View feedback report
  *
  * All backend API calls and Stack Auth are stubbed — only the Next.js
  * frontend needs to be running (pnpm next-dev).
  */
 
-// AI SDK v5 uses SSE-based data stream protocol (not the old v4 "0:text" format).
-// Each event is `data: <JSON>\n\n`. The sequence is:
-//   start → text-start → text-delta(s) → text-end → finish → [DONE]
-function buildSSEStream(messageId: string, text: string): string {
-  const textId = "text-1";
-  return [
-    `data: {"type":"start","messageId":"${messageId}"}`,
-    `data: {"type":"text-start","id":"${textId}"}`,
-    `data: {"type":"text-delta","id":"${textId}","delta":${JSON.stringify(text)}}`,
-    `data: {"type":"text-end","id":"${textId}"}`,
-    `data: {"type":"finish"}`,
-    `data: [DONE]`,
-  ]
-    .map((line) => line + "\n\n")
-    .join("");
-}
-
-const MOCK_CHAT_STREAM = buildSSEStream(
-  "msg_mock_greeting",
-  "Hello! I've reviewed your resume and the job description.\n\nLet's start the interview. Tell me about yourself and your experience.\n",
-);
-
-const MOCK_FOLLOW_UP_STREAM = buildSSEStream(
-  "msg_mock_followup",
-  "Great answer! Can you tell me more about a specific project you worked on?\n",
-);
-
-const TEST_CHAT_ID = "aaaabbbb-cccc-dddd-eeee-ffffffffffff";
+import { MOCK_CHAT_STREAM, MOCK_FOLLOW_UP_STREAM } from "../support/mock-streams";
 
 describe("Full Interview Flow", () => {
   beforeEach(() => {
     cy.login();
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Test 1: Landing page through end of interview
-  // ─────────────────────────────────────────────────────────────────────────
-  it("completes the interview from landing through ending the session", () => {
+  it("completes the entire interview lifecycle from landing to report", () => {
     // ── Phase 1: Landing page redirects to a UUID chat route ──────────
 
     cy.intercept("GET", "/api/session/*", {
@@ -192,26 +158,25 @@ describe("Full Interview Flow", () => {
 
       cy.get("[data-testid='view-report-btn']").should("be.visible");
       cy.contains("View feedback report").should("be.visible");
+
+      // ── Phase 6: View feedback report ─────────────────────────────
+
+      // Visit the report page directly to avoid complex client-side
+      // navigation issues with stale intercepts.
+      cy.intercept("GET", `/api/session/${chatId}/report`, {
+        statusCode: 200,
+        body: {
+          report: "# Interview Report\n\nGreat job! Here is your feedback.",
+        },
+      }).as("getReport");
+
+      cy.visit(`/${chatId}/report`);
+
+      cy.wait("@getReport");
+
+      cy.get("[data-testid='report-content']").should("be.visible");
+      cy.contains("Interview Report").should("be.visible");
+      cy.contains("Great job").should("be.visible");
     });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Test 2: View feedback report (visit report page directly)
-  // ─────────────────────────────────────────────────────────────────────────
-  it("displays the feedback report for an ended session", () => {
-    cy.intercept("GET", `/api/session/${TEST_CHAT_ID}/report`, {
-      statusCode: 200,
-      body: {
-        report: "# Interview Report\n\nGreat job! Here is your feedback.",
-      },
-    }).as("getReport");
-
-    cy.visit(`/${TEST_CHAT_ID}/report`);
-
-    cy.wait("@getReport");
-
-    cy.get("[data-testid='report-content']").should("be.visible");
-    cy.contains("Interview Report").should("be.visible");
-    cy.contains("Great job").should("be.visible");
   });
 });
