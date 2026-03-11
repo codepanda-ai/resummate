@@ -17,12 +17,10 @@ const TEST_CHAT_ID = "aaaabbbb-cccc-dddd-eeee-ffffffffffff";
 
 describe("Core Interview Flow", () => {
   beforeEach(() => {
-    // Stub Stack Auth so useUser() sees a valid session without a real auth server
-    cy.stubAuth();
-    // Enable test mode in localStorage so x-test-mode: true header is sent
-    cy.window().then((win) => {
-      win.localStorage.setItem("test-mode", "true");
-    });
+    // Sign in as the test user via Stack Auth REST API (cached by cy.session —
+    // the network call only happens once per run; all other tests restore cookies
+    // from the session cache instantly).
+    cy.login();
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -71,11 +69,9 @@ describe("Core Interview Flow", () => {
     cy.get("[data-testid='start-interview-btn']").should("be.disabled");
 
     // --- Upload resume ---
-    // Click the paperclip attachments button to open the dropdown
-    cy.get("[data-testid='attachments-button']").click();
-    // Select "Resume" from the dropdown
-    cy.contains("Resume").click();
-    // Trigger file selection on the hidden input
+    // Use selectFile({ force: true }) directly on the hidden input.
+    // This avoids opening the native file picker dialog (via the dropdown),
+    // which can block subsequent browser interactions in Cypress.
     cy.get("[data-testid='resume-file-input']").selectFile(
       "cypress/fixtures/resume.pdf",
       { force: true }
@@ -85,13 +81,6 @@ describe("Core Interview Flow", () => {
     cy.contains("resume.pdf").should("be.visible");
 
     // --- Upload job description ---
-    // Override resume endpoint to now return the uploaded resume
-    cy.intercept("GET", `/api/resume/${TEST_CHAT_ID}`, {
-      statusCode: 200,
-      body: { resume: { id: "res_1", name: "resume.pdf", type: "PDF" } },
-    });
-    cy.get("[data-testid='attachments-button']").click();
-    cy.contains("Job Description").click();
     cy.get("[data-testid='job-description-file-input']").selectFile(
       "cypress/fixtures/job-description.pdf",
       { force: true }
