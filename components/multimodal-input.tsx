@@ -277,6 +277,7 @@ export function MultimodalInput({
           <Button
             onClick={handleGenerateFeedback}
             disabled={isGeneratingReport}
+            data-testid="view-report-btn"
             className="w-full rounded-xl px-4 py-3.5 text-sm h-auto bg-blue-900 hover:bg-blue-950 text-white opacity-100 flex items-center justify-start gap-2"
           >
             {isGeneratingReport ? (
@@ -299,6 +300,7 @@ export function MultimodalInput({
                 type="button"
                 variant="destructive"
                 disabled={isLoading || isEndingInterview}
+                data-testid="end-interview-btn"
                 className="w-full rounded-xl px-4 py-3.5 text-sm h-auto flex items-center gap-2"
               >
                 {isEndingInterview ? (
@@ -327,6 +329,7 @@ export function MultimodalInput({
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleEndInterview}
+                  data-testid="end-interview-confirm-btn"
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   End interview
@@ -344,6 +347,7 @@ export function MultimodalInput({
                     variant="default"
                     onClick={handleStartInterview}
                     disabled={!canStartInterview || isLoading || isStartingInterview}
+                    data-testid="start-interview-btn"
                     className="w-full rounded-xl px-4 py-3.5 text-sm h-auto flex items-center gap-2"
                   >
                     {isStartingInterview ? (
@@ -421,6 +425,7 @@ export function MultimodalInput({
         ref={resumeInputRef}
         type="file"
         className="hidden"
+        data-testid="resume-file-input"
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) {
@@ -434,6 +439,7 @@ export function MultimodalInput({
         ref={jobDescriptionInputRef}
         type="file"
         className="hidden"
+        data-testid="job-description-file-input"
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) {
