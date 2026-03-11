@@ -114,7 +114,7 @@ export default function ReportPage() {
         )}
 
         {report && (
-          <div className="prose prose-invert max-w-none">
+          <div className="prose prose-invert max-w-none" data-testid="report-content">
             <Streamdown>{report}</Streamdown>
           </div>
         )}
