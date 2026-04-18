@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
 
+    # Sentry (optional; omit or leave empty to disable error reporting)
+    SENTRY_DSN: str | None = None
+    ENVIRONMENT: str = "local"
+
     model_config = SettingsConfigDict(
         env_file=".env.local", extra="ignore", case_sensitive=True
     )
