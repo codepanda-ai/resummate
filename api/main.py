@@ -2,7 +2,7 @@
 Main FastAPI application entry point.
 """
 
-from fastapi import FastAPI, Request as FastAPIRequest, status
+from fastapi import FastAPI, Request as FastAPIRequest, status, Depends
 from vercel.headers import set_headers
 
 from api.chat.router import router as chat_router
@@ -10,9 +10,20 @@ from api.resume.router import router as resume_router
 from api.job_description.router import router as job_description_router
 from api.user.router import router as user_router
 from api.session.router import router as session_router
+from api.core.config import settings
 from api.core.logging import log_info, logger
 from api.core.schemas import HealthCheckResponse
+from api.auth.stack_auth import verify_stack_token
 
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn=settings.SENTRY_DSN,
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=False,
+    environment=settings.ENVIRONMENT,
+)
 
 app = FastAPI(
     title="Resummate API",
@@ -61,6 +72,12 @@ async def health_check() -> HealthCheckResponse:
     log_info("Health check called", extra={"endpoint": "/api/health"})
     return HealthCheckResponse(status="healthy")
 
+@app.get("/api/sentry-debug")
+async def trigger_error(auth_user: dict = Depends(verify_stack_token)):
+    """
+    Trigger a test error for Sentry.
+    """
+    division_by_zero = 1 / 0
 
 @app.on_event("startup")
 async def startup_event():
