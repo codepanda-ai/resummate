@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
 
+    # Upstash Redis (optional; omit to disable response caching)
+    UPSTASH_REDIS_REST_URL: str | None = None
+    UPSTASH_REDIS_REST_TOKEN: str | None = None
+
     # Sentry (optional; omit or leave empty to disable error reporting)
     SENTRY_DSN: str | None = None
     ENVIRONMENT: str = "local"

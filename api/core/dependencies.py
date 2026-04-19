@@ -2,13 +2,14 @@
 Dependency injection providers for the application.
 """
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Optional
 
 from fastapi import Depends, HTTPException, status
 from google import genai
 from supabase import Client, create_client
 
 from .config import settings
+from .cache import get_redis_client as _get_redis_client
 from api.auth.stack_auth import verify_stack_token
 
 if TYPE_CHECKING:
@@ -38,9 +39,20 @@ def get_gemini_client() -> genai.Client:
     return genai.Client(api_key=settings.GOOGLE_GENERATIVE_AI_API_KEY)
 
 
+def get_redis_client():
+    """
+    Dependency provider for Upstash Redis client.
+
+    Returns:
+        Redis | None: Configured Upstash client, or None if not configured
+    """
+    return _get_redis_client()
+
+
 # Primitive client type aliases
 SupabaseClient = Annotated[Client, Depends(get_supabase_client)]
 GeminiClient = Annotated[genai.Client, Depends(get_gemini_client)]
+RedisClient = Annotated[Optional[object], Depends(get_redis_client)]
 
 
 async def verify_session_owner(
@@ -83,8 +95,6 @@ def get_interview_agent(
     Returns:
         InterviewAgent: Agent instance with injected clients
     """
-    # Local import avoids module-level circular dependencies if the
-    # agent graph grows to include dependencies that reference this module.
     from api.agents.interview_agent import InterviewAgent
 
     return InterviewAgent(gemini=gemini, supabase=supabase)

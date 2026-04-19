@@ -193,7 +193,6 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
                         content=accumulated_content,
                     ),
                 )
-
             yield format_sse({"type": "finish"})
             yield "data: [DONE]\n\n"
 
@@ -206,12 +205,13 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
             yield "data: [DONE]\n\n"
             raise
 
-    async def run_mock(self, session_id: str) -> AsyncGenerator[str, None]:
+    async def run_mock(self, session_id: str, prompt: str) -> AsyncGenerator[str, None]:
         """
-        Stream a random mock response for test mode.
+        Stream a mock response for test mode, using cache for consistency.
 
         Args:
             session_id: Thread/session identifier
+            prompt: User message text (used as cache key)
 
         Yields:
             str: SSE-formatted response chunks
@@ -222,6 +222,7 @@ Questions MUST be tailored to the resume and job description. Use these STAR-sty
 
         message_id = f"msg-{uuid.uuid4().hex}"
         text_stream_id = "text-1"
+
         message_text = random.choice(self.MOCK_RESPONSES)
 
         yield format_sse({"type": "start", "messageId": message_id})

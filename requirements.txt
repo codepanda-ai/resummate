@@ -27,6 +27,7 @@ tqdm==4.67.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.5.0
+upstash-redis==1.7.0
 uvicorn==0.38.0
 vercel==0.3.2
 vercel-sandbox==0.0.2

@@ -10,16 +10,15 @@ from pydantic import BaseModel
 from typing import Optional
 
 from api.auth.stack_auth import verify_stack_token
-from api.core.dependencies import ReportAgentDep, SessionOwner, SupabaseClient
+from api.core.dependencies import RedisClient, ReportAgentDep, SessionOwner, SupabaseClient
 from api.db.service import (
     get_job_description,
     get_or_create_session,
     get_resume,
     get_session,
-    get_session_report,
-    save_session_report,
     update_session_status,
 )
+from api.services.data import get_report as fetch_report, save_report
 
 
 router = APIRouter(prefix="/api/session", tags=["session"])
@@ -177,6 +176,7 @@ async def generate_report(
     session_id: str,
     supabase: SupabaseClient,
     agent: ReportAgentDep,
+    redis: RedisClient,
     auth_user: SessionOwner,
     x_test_mode: Optional[str] = Header(None),
 ) -> ReportResponse:
@@ -197,7 +197,7 @@ async def generate_report(
         HTTPException: If report generation fails
     """
     if x_test_mode == "true":
-        await save_session_report(supabase, session_id, agent.MOCK_REPORT)
+        await save_report(redis, supabase, session_id, agent.MOCK_REPORT)
         return ReportResponse(report=agent.MOCK_REPORT)
 
     session, resume, job_description = await asyncio.gather(
@@ -223,7 +223,7 @@ async def generate_report(
             started_at=session.get("started_at") if session else None,
             ended_at=session.get("ended_at") if session else None,
         )
-        await save_session_report(supabase, session_id, report)
+        await save_report(redis, supabase, session_id, report)
         return ReportResponse(report=report)
     except ValueError as e:
         raise HTTPException(
@@ -245,6 +245,7 @@ async def generate_report(
 async def get_report(
     session_id: str,
     supabase: SupabaseClient,
+    redis: RedisClient,
     auth_user: SessionOwner,
 ) -> ReportResponse:
     """
@@ -253,6 +254,7 @@ async def get_report(
     Args:
         session_id: Session identifier from URL path
         supabase: Supabase client dependency
+        redis: Redis client dependency
         auth_user: Authenticated user data (ownership verified)
 
     Returns:
@@ -261,7 +263,7 @@ async def get_report(
     Raises:
         HTTPException: If report not found
     """
-    report = await get_session_report(supabase, session_id)
+    report = await fetch_report(redis, supabase, session_id)
     if not report:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

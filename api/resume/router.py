@@ -7,7 +7,7 @@ import uuid as uuid_lib
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 
 from api.auth.stack_auth import verify_stack_token
-from api.core.dependencies import GeminiClient, SessionOwner, SupabaseClient
+from api.core.dependencies import GeminiClient, RedisClient, SessionOwner, SupabaseClient
 from api.core.schemas import FileUploadResponse, FileInfoResponse
 from api.db.service import (
     get_session_user_id,
@@ -15,6 +15,7 @@ from api.db.service import (
     get_resume as fetch_resume,
     delete_resume as remove_resume,
 )
+from api.services.data import cache_resume, invalidate_resume
 from api.services.gemini import upload_file
 
 router = APIRouter(
@@ -28,6 +29,7 @@ router = APIRouter(
 async def upload_resume(
     supabase: SupabaseClient,
     gemini: GeminiClient,
+    redis: RedisClient,
     file: UploadFile = File(...),
     uuid: str = Form(None),
     auth_user: dict = Depends(verify_stack_token),
@@ -70,8 +72,6 @@ async def upload_resume(
             file_name=file_name,
             resume_file=gemini_file,
         )
-
-        return FileUploadResponse(message="Resume uploaded successfully!")
     except HTTPException:
         raise
     except Exception as e:
@@ -79,6 +79,9 @@ async def upload_resume(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error uploading file: {e}",
         )
+
+    await cache_resume(redis, session_id, gemini_file.name)
+    return FileUploadResponse(message="Resume uploaded successfully!")
 
 
 @router.get(
@@ -116,7 +119,7 @@ async def get_resume(
     "/{session_id}", response_model=FileUploadResponse, status_code=status.HTTP_200_OK
 )
 async def delete_resume(
-    session_id: str, supabase: SupabaseClient, auth_user: SessionOwner
+    session_id: str, supabase: SupabaseClient, redis: RedisClient, auth_user: SessionOwner
 ) -> FileUploadResponse:
     """
     Delete a resume for a thread.
@@ -124,6 +127,7 @@ async def delete_resume(
     Args:
         session_id: Thread identifier
         supabase: Supabase client dependency
+        redis: Redis client dependency
         auth_user: Authenticated user data (ownership verified)
 
     Returns:
@@ -134,6 +138,7 @@ async def delete_resume(
     """
     try:
         await remove_resume(supabase, session_id)
+        await invalidate_resume(redis, session_id)
         return FileUploadResponse(message="Resume deleted successfully!")
     except Exception as e:
         raise HTTPException(
