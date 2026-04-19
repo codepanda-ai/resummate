@@ -7,7 +7,7 @@ import uuid as uuid_lib
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 
 from api.auth.stack_auth import verify_stack_token
-from api.core.dependencies import GeminiClient, SessionOwner, SupabaseClient
+from api.core.dependencies import GeminiClient, RedisClient, SessionOwner, SupabaseClient
 from api.core.schemas import FileUploadResponse, FileInfoResponse
 from api.db.service import (
     get_session_user_id,
@@ -15,6 +15,7 @@ from api.db.service import (
     get_job_description as fetch_job_description,
     delete_job_description as remove_job_description,
 )
+from api.services.data import cache_jd, invalidate_jd
 from api.services.gemini import upload_file
 
 router = APIRouter(
@@ -30,6 +31,7 @@ router = APIRouter(
 async def upload_job_description(
     supabase: SupabaseClient,
     gemini: GeminiClient,
+    redis: RedisClient,
     file: UploadFile = File(...),
     uuid: str = Form(None),
     auth_user: dict = Depends(verify_stack_token),
@@ -72,8 +74,6 @@ async def upload_job_description(
             file_name=file_name,
             job_description_file=gemini_file,
         )
-
-        return FileUploadResponse(message="Job description uploaded successfully!")
     except HTTPException:
         raise
     except Exception as e:
@@ -81,6 +81,9 @@ async def upload_job_description(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error uploading file: {e}",
         )
+
+    await cache_jd(redis, session_id, gemini_file.name)
+    return FileUploadResponse(message="Job description uploaded successfully!")
 
 
 @router.get(
@@ -119,7 +122,7 @@ async def get_job_description(
     "/{session_id}", response_model=FileUploadResponse, status_code=status.HTTP_200_OK
 )
 async def delete_job_description(
-    session_id: str, supabase: SupabaseClient, auth_user: SessionOwner
+    session_id: str, supabase: SupabaseClient, redis: RedisClient, auth_user: SessionOwner
 ) -> FileUploadResponse:
     """
     Delete a job description for a thread.
@@ -127,6 +130,7 @@ async def delete_job_description(
     Args:
         session_id: Thread identifier
         supabase: Supabase client dependency
+        redis: Redis client dependency
         auth_user: Authenticated user data (ownership verified)
 
     Returns:
@@ -137,6 +141,7 @@ async def delete_job_description(
     """
     try:
         await remove_job_description(supabase, session_id)
+        await invalidate_jd(redis, session_id)
         return FileUploadResponse(message="Job description deleted successfully!")
     except Exception as e:
         raise HTTPException(

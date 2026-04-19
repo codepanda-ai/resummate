@@ -11,6 +11,7 @@ from api.auth.stack_auth import verify_stack_token
 from api.core.dependencies import (
     GeminiClient,
     InterviewAgentDep,
+    RedisClient,
     SessionOwner,
     SupabaseClient,
 )
@@ -27,10 +28,9 @@ from api.core.schemas import (
 )
 from api.db.service import (
     create_message,
-    get_job_description,
     get_messages,
-    get_resume,
 )
+from api.services.data import get_jd_reference, get_resume_reference
 from api.services.gemini import (
     generate_response,
     stream_resume_required_message,
@@ -98,6 +98,7 @@ async def generate(gemini: GeminiClient, request: PromptRequest) -> GenerateResp
 async def handle_chat(
     supabase: SupabaseClient,
     agent: InterviewAgentDep,
+    redis: RedisClient,
     request: ChatRequest,
     protocol: str = Query("data"),
     x_test_mode: str | None = Header(None),
@@ -154,13 +155,13 @@ async def handle_chat(
     if x_test_mode == "true":
         log_info("Test mode enabled, returning mock response")
         response = StreamingResponse(
-            agent.run_mock(session_id),
+            agent.run_mock(session_id, prompt),
             media_type="text/event-stream",
         )
         return patch_response_with_headers(response, protocol)
 
-    resume = await get_resume(supabase, session_id)
-    if not resume:
+    resume_reference = await get_resume_reference(redis, supabase, session_id)
+    if not resume_reference:
         log_info("Resume not found, requesting upload")
         response = StreamingResponse(
             stream_resume_required_message(supabase, session_id),
@@ -168,15 +169,14 @@ async def handle_chat(
         )
         return patch_response_with_headers(response, protocol)
 
-    job_description = await get_job_description(supabase, session_id)
-    job_description_reference = job_description[0]["name"] if job_description else None
+    jd_reference = await get_jd_reference(redis, supabase, session_id)
 
     response = StreamingResponse(
         agent.run(
             prompt=prompt,
             session_id=session_id,
-            file_reference=resume[0]["name"],
-            job_description_reference=job_description_reference,
+            file_reference=resume_reference,
+            job_description_reference=jd_reference,
         ),
         media_type="text/event-stream",
     )
